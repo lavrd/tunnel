@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 libc = { version = "0.2.153", features = ["std"], default-features = false }
 ipnet = { version = "2.9.0", features = ["std"], default-features = false }
+etherparse = { version = "0.14.2", features = [], default-features = false }
 signal-hook = { version = "0.3.17", features = ["iterator"], default-features = false }

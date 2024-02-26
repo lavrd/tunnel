@@ -3,6 +3,21 @@
 version = 3
 
 [[package]]
+name = "arrayvec"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
+
+[[package]]
+name = "etherparse"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24890603eb4b43aa788f02261ce21714449033e3e2ab93692f0ab18480c3c9b1"
+dependencies = [
+ "arrayvec",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -37,6 +52,7 @@ dependencies = [
 name = "tunnel"
 version = "0.1.0"
 dependencies = [
+ "etherparse",
  "ipnet",
  "libc",
  "signal-hook",
