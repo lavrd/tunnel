@@ -64,12 +64,13 @@ fn client(mut tun_fd: File, stop_r: Receiver<()>, stop_cb_s: Sender<()>) -> std:
         match tun_fd.read(&mut buffer) {
             Ok(n) => {
                 let buffer = &buffer[..n];
-                eprintln!("Received packet: {:?}", buffer);
+                eprintln!("Received packet from TUN: {:?}", buffer);
                 let mut socket = TcpStream::connect("164.92.207.87:6688")?;
                 let _ = socket.write(buffer)?;
                 let mut buffer = vec![0; 512];
                 let n = socket.read(&mut buffer)?;
                 let buffer = &buffer[..n];
+                eprintln!("Received packet from server: {:?}", buffer);
                 let _ = tun_fd.write(buffer)?;
                 std::process::exit(0);
             }
@@ -84,7 +85,9 @@ fn server(mut tun_fd: File, stop_r: Receiver<()>, stop_cb_s: Sender<()>) -> std:
     let (mut socket, _) = listener.accept()?;
     let mut buffer = vec![0; MTU];
     let n = socket.read(&mut buffer)?;
-    let _ = tun_fd.write(&buffer[..n])?;
+    let buffer = &buffer[..n];
+    eprintln!("Received packet from client: {:?}", buffer);
+    let _ = tun_fd.write(buffer)?;
     loop {
         if stop_r.try_recv().is_ok() {
             stop_cb_s.send(()).map_err(map_io_err)?;
@@ -94,7 +97,7 @@ fn server(mut tun_fd: File, stop_r: Receiver<()>, stop_cb_s: Sender<()>) -> std:
         match tun_fd.read(&mut buffer) {
             Ok(n) => {
                 let buffer = &buffer[..n];
-                eprintln!("Received packet: {:?}", buffer);
+                eprintln!("Received packet from TUN: {:?}", buffer);
                 let ipv4_packet = Ipv4Slice::from_slice(buffer).map_err(map_io_err)?;
                 if ipv4_packet.header().protocol() != IpNumber::ICMP {
                     continue;
