@@ -84,7 +84,7 @@ fn client(mut tun_fd: File, stop_r: Receiver<()>, stop_cb_s: Sender<()>) -> std:
                 let udp_socket = UdpSocket::bind("0.0.0.0:0")?;
                 udp_socket.connect("164.92.207.87:6688")?;
                 udp_socket.send(buffer)?;
-                let mut buffer = vec![0; 512];
+                let mut buffer = vec![0; MTU];
                 let (n, _) = udp_socket.recv_from(&mut buffer)?;
                 let buffer = &buffer[..n];
                 eprintln!("Received packet from server: {:?}", buffer);
