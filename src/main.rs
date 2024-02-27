@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{ErrorKind, Read, Write},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, UdpSocket},
     sync::mpsc::{channel, Receiver, Sender},
     thread,
     time::Duration,
@@ -28,7 +28,7 @@ fn main() -> std::io::Result<()> {
     let (stop_cb_s, stop_cb_r) = channel::<()>();
 
     thread::spawn(move || -> std::io::Result<()> {
-        let iface = linux::Interface::new(name, &[ip.parse().map_err(map_io_err)?], MTU)?;
+        let iface = linux::Interface::new(name, ip.parse().map_err(map_io_err)?, MTU)?;
         let tun_fd = iface.into_tun_fd();
 
         match side.as_str() {
@@ -65,10 +65,11 @@ fn client(mut tun_fd: File, stop_r: Receiver<()>, stop_cb_s: Sender<()>) -> std:
             Ok(n) => {
                 let buffer = &buffer[..n];
                 eprintln!("Received packet from TUN: {:?}", buffer);
-                let mut socket = TcpStream::connect("164.92.207.87:6688")?;
-                let _ = socket.write(buffer)?;
+                let udp_socket = UdpSocket::bind("0.0.0.0:0")?;
+                udp_socket.connect("164.92.207.87:6688")?;
+                udp_socket.send(buffer)?;
                 let mut buffer = vec![0; 512];
-                let n = socket.read(&mut buffer)?;
+                let (n, _) = udp_socket.recv_from(&mut buffer)?;
                 let buffer = &buffer[..n];
                 eprintln!("Received packet from server: {:?}", buffer);
                 let _ = tun_fd.write(buffer)?;
