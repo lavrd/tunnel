@@ -23,6 +23,8 @@ const SIDE_SERVER: &str = "server";
 
 const UDP_SOCKET_PORT: &str = "6688";
 
+const INIT_MESSAGE: &[u8] = b"init";
+
 static STOP_SIGNAL: AtomicBool = AtomicBool::new(false);
 static ACTIVE_THREADS: AtomicU8 = AtomicU8::new(0);
 
@@ -91,6 +93,7 @@ where
 
 fn start_client_process(tun_fd: File, udp_socket: UdpSocket) -> std::io::Result<()> {
     udp_socket.connect(format!("164.92.207.87:{UDP_SOCKET_PORT}"))?;
+    udp_socket.send(INIT_MESSAGE)?;
     start_process_threads(&tun_fd, &udp_socket, None)
 }
 
