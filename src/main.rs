@@ -4,10 +4,9 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::channel,
         Arc, RwLock,
     },
-    thread,
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
@@ -108,19 +107,13 @@ fn start_process_threads(
     let udp_socket_ = udp_socket.try_clone()?;
     let client_addr_ = client_addr.clone();
     let stop_signal_ = stop_signal.clone();
-    let (tun_proc_s, tun_proc_r) = channel::<()>();
-    thread::spawn(move || {
+    let th: JoinHandle<()> = thread::spawn(move || {
         if let Err(e) = tun_process(tun_fd_, udp_socket_, client_addr_, stop_signal_) {
             eprintln!("Failed to run TUN process: {e}");
         }
-        if let Err(e) = tun_proc_s.send(()) {
-            eprintln!("Failed to send that tun process exited: {e}")
-        }
     });
-    if let Err(e) = rpc_process(tun_fd, udp_socket, client_addr, stop_signal) {
-        eprintln!("Failed to run RPC process: {e}");
-    }
-    tun_proc_r.recv_timeout(Duration::from_secs(1)).map_err(map_io_err)
+    rpc_process(tun_fd, udp_socket, client_addr, stop_signal)?;
+    th.join().map_err(|_| new_io_err("failed to waiting tun process thread"))
 }
 
 fn tun_process(
