@@ -20,9 +20,6 @@ mod linux;
 
 const MTU: usize = 512;
 
-const SIDE_CLIENT: &str = "client";
-const SIDE_SERVER: &str = "server";
-
 const UDP_SOCKET_PORT: u16 = 6688;
 
 fn main() -> std::io::Result<()> {
@@ -32,18 +29,12 @@ fn main() -> std::io::Result<()> {
         .ok_or_else(|| new_io_err("failed to find arg with ip"))?
         .parse()
         .map_err(map_io_err)?;
-    let side = std::env::args().nth(3).ok_or_else(|| new_io_err("failed to find arg with side"))?;
-    let client_addr: Arc<RwLock<SocketAddr>> = if side == SIDE_CLIENT {
-        Arc::new(RwLock::new(
-            std::env::args()
-                .nth(4)
-                .ok_or_else(|| new_io_err("failed to find arg with server address"))?
-                .parse()
-                .map_err(map_io_err)?,
-        ))
+    let client_addr: SocketAddr = if let Some(arg) = std::env::args().nth(3) {
+        arg.parse().map_err(map_io_err)?
     } else {
-        Arc::new(RwLock::new(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)))
+        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)
     };
+    let client_addr = Arc::new(RwLock::new(client_addr));
     eprintln!("Starting TUN device with '{}' name and '{}' IP", name, ip);
 
     let stop_signal: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
@@ -51,7 +42,7 @@ fn main() -> std::io::Result<()> {
     signal_hook::flag::register(signal_hook::consts::SIGINT, stop_signal.clone())?;
     signal_hook::flag::register(signal_hook::consts::SIGQUIT, stop_signal.clone())?;
 
-    start_process(name, ip, side, client_addr, stop_signal)
+    start_tunnel(name, ip, client_addr, stop_signal)
 }
 
 pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {
@@ -62,42 +53,23 @@ pub(crate) fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, format!("{}: {}", e.to_string(), msg))
 }
 
-fn start_process(
+fn start_tunnel(
     name: String,
     ip: Ipv4Net,
-    side: String,
     client_addr: Arc<RwLock<SocketAddr>>,
     stop_signal: Arc<AtomicBool>,
 ) -> std::io::Result<()> {
     let iface = Interface::new(name, ip, MTU)?;
     let tun_fd = iface.into_tun_fd();
 
-    let udp_socket = match side.as_str() {
-        SIDE_CLIENT => UdpSocket::bind("0.0.0.0:0")?,
-        SIDE_SERVER => UdpSocket::bind(format!("0.0.0.0:{UDP_SOCKET_PORT}"))?,
-        _ => return Err(new_io_err("unknown side to create new udp socket")),
-    };
+    let udp_socket = UdpSocket::bind(format!("0.0.0.0:{UDP_SOCKET_PORT}"))?;
     udp_socket.set_write_timeout(Some(Duration::from_millis(500)))?;
     udp_socket.set_read_timeout(Some(Duration::from_millis(500)))?;
 
-    match side.as_str() {
-        SIDE_CLIENT => start_client_process(tun_fd, udp_socket, client_addr, stop_signal),
-        SIDE_SERVER => start_process_threads(tun_fd, udp_socket, client_addr, stop_signal),
-        _ => Err(new_io_err("unknown side to make initializing handshake")),
-    }
+    start_processes(tun_fd, udp_socket, client_addr, stop_signal)
 }
 
-fn start_client_process(
-    tun_fd: File,
-    udp_socket: UdpSocket,
-    client_addr: Arc<RwLock<SocketAddr>>,
-    stop_signal: Arc<AtomicBool>,
-) -> std::io::Result<()> {
-    udp_socket.connect(*client_addr.read().map_err(map_io_err)?)?;
-    start_process_threads(tun_fd, udp_socket, client_addr, stop_signal)
-}
-
-fn start_process_threads(
+fn start_processes(
     tun_fd: File,
     udp_socket: UdpSocket,
     client_addr: Arc<RwLock<SocketAddr>>,
@@ -108,12 +80,25 @@ fn start_process_threads(
     let client_addr_ = client_addr.clone();
     let stop_signal_ = stop_signal.clone();
     let th: JoinHandle<()> = thread::spawn(move || {
-        if let Err(e) = tun_process(tun_fd_, udp_socket_, client_addr_, stop_signal_) {
-            eprintln!("Failed to run TUN process: {e}");
-        }
+        run_process(tun_fd_, udp_socket_, client_addr_, stop_signal_, tun_process)
     });
-    rpc_process(tun_fd, udp_socket, client_addr, stop_signal)?;
+    run_process(tun_fd, udp_socket, client_addr, stop_signal, rpc_process);
     th.join().map_err(|_| new_io_err("failed to waiting tun process thread"))
+}
+
+fn run_process<Func>(
+    tun_td: File,
+    udp_socket: UdpSocket,
+    client_addr: Arc<RwLock<SocketAddr>>,
+    stop_signal: Arc<AtomicBool>,
+    process: Func,
+) where
+    Func: Fn(File, UdpSocket, Arc<RwLock<SocketAddr>>, Arc<AtomicBool>) -> std::io::Result<()>,
+{
+    if let Err(e) = process(tun_td, udp_socket, client_addr, stop_signal.clone()) {
+        eprintln!("Failed to run process: {e}")
+    }
+    stop_signal.store(true, Ordering::Relaxed);
 }
 
 fn tun_process(
