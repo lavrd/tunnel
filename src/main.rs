@@ -16,6 +16,7 @@ use ipnet::Ipv4Net;
 use linux::Interface;
 
 mod ioctl;
+#[cfg(target_os = "linux")]
 mod linux;
 
 const MTU: usize = 512;
