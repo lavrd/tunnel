@@ -1,17 +1,20 @@
 use std::{
     fs::File,
     io::{ErrorKind, Read, Write},
-    net::{SocketAddr, UdpSocket},
+    net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     sync::{
-        atomic::{AtomicBool, AtomicU8, Ordering},
-        mpsc,
+        atomic::{AtomicBool, Ordering},
+        mpsc::channel,
+        Arc, RwLock,
     },
     thread,
     time::Duration,
 };
 
 use ipnet::Ipv4Net;
-use signal_hook::{consts::TERM_SIGNALS, iterator::Signals};
+
+#[cfg(target_os = "linux")]
+use linux::Interface;
 
 mod ioctl;
 mod linux;
@@ -21,12 +24,7 @@ const MTU: usize = 512;
 const SIDE_CLIENT: &str = "client";
 const SIDE_SERVER: &str = "server";
 
-const UDP_SOCKET_PORT: &str = "6688";
-
-const INIT_MESSAGE: &[u8] = b"init";
-
-static STOP_SIGNAL: AtomicBool = AtomicBool::new(false);
-static ACTIVE_THREADS: AtomicU8 = AtomicU8::new(0);
+const UDP_SOCKET_PORT: u16 = 6688;
 
 fn main() -> std::io::Result<()> {
     let name = std::env::args().nth(1).ok_or_else(|| new_io_err("failed to find arg with name"))?;
@@ -36,18 +34,25 @@ fn main() -> std::io::Result<()> {
         .parse()
         .map_err(map_io_err)?;
     let side = std::env::args().nth(3).ok_or_else(|| new_io_err("failed to find arg with side"))?;
-    eprintln!("Starting TUN device with '{}' name and '{}' IP on {}", name, ip, side);
+    let client_addr: Arc<RwLock<SocketAddr>> = if side == SIDE_CLIENT {
+        Arc::new(RwLock::new(
+            std::env::args()
+                .nth(4)
+                .ok_or_else(|| new_io_err("failed to find arg with server address"))?
+                .parse()
+                .map_err(map_io_err)?,
+        ))
+    } else {
+        Arc::new(RwLock::new(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)))
+    };
+    eprintln!("Starting TUN device with '{}' name and '{}' IP", name, ip);
 
-    start_process(name, ip, side)?;
+    let stop_signal: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    signal_hook::flag::register(signal_hook::consts::SIGTERM, stop_signal.clone())?;
+    signal_hook::flag::register(signal_hook::consts::SIGINT, stop_signal.clone())?;
+    signal_hook::flag::register(signal_hook::consts::SIGQUIT, stop_signal.clone())?;
 
-    let mut sigs = Signals::new(TERM_SIGNALS)?;
-    sigs.into_iter().next().ok_or_else(|| new_io_err("failed to wait for termination signal"))?;
-    eprintln!("Received termination signal");
-    STOP_SIGNAL.store(true, Ordering::Relaxed);
-    while ACTIVE_THREADS.load(Ordering::Relaxed) != 0 {
-        std::hint::spin_loop()
-    }
-    Ok(())
+    start_process(name, ip, side, client_addr, stop_signal)
 }
 
 pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {
@@ -58,8 +63,14 @@ pub(crate) fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, format!("{}: {}", e.to_string(), msg))
 }
 
-fn start_process(name: String, ip: Ipv4Net, side: String) -> std::io::Result<()> {
-    let iface = linux::Interface::new(name, ip, MTU)?;
+fn start_process(
+    name: String,
+    ip: Ipv4Net,
+    side: String,
+    client_addr: Arc<RwLock<SocketAddr>>,
+    stop_signal: Arc<AtomicBool>,
+) -> std::io::Result<()> {
+    let iface = Interface::new(name, ip, MTU)?;
     let tun_fd = iface.into_tun_fd();
 
     let udp_socket = match side.as_str() {
@@ -67,110 +78,60 @@ fn start_process(name: String, ip: Ipv4Net, side: String) -> std::io::Result<()>
         SIDE_SERVER => UdpSocket::bind(format!("0.0.0.0:{UDP_SOCKET_PORT}"))?,
         _ => return Err(new_io_err("unknown side to create new udp socket")),
     };
-    udp_socket.set_write_timeout(Some(Duration::from_millis(100)))?;
-    udp_socket.set_read_timeout(Some(Duration::from_millis(100)))?;
+    udp_socket.set_write_timeout(Some(Duration::from_millis(500)))?;
+    udp_socket.set_read_timeout(Some(Duration::from_millis(500)))?;
 
     match side.as_str() {
-        SIDE_CLIENT => start_process_inner(tun_fd, udp_socket, start_client_process),
-        SIDE_SERVER => start_process_inner(tun_fd, udp_socket, start_server_process),
-        _ => return Err(new_io_err("unknown side to make initializing handshake")),
-    };
-    Ok(())
-}
-
-fn start_process_inner<F>(tun_fd: File, udp_socket: UdpSocket, f: F)
-where
-    F: FnOnce(File, UdpSocket) -> std::io::Result<()> + Send + 'static,
-{
-    ACTIVE_THREADS.fetch_add(1, Ordering::Relaxed);
-    thread::spawn(move || {
-        if let Err(e) = f(tun_fd, udp_socket) {
-            final_error(e, "Failed to start server process")
-        }
-        ACTIVE_THREADS.fetch_sub(1, Ordering::Relaxed);
-    });
-}
-
-fn start_client_process(tun_fd: File, udp_socket: UdpSocket) -> std::io::Result<()> {
-    udp_socket.connect(format!("164.92.207.87:{UDP_SOCKET_PORT}"))?;
-    udp_socket.send(INIT_MESSAGE)?;
-    start_process_threads(&tun_fd, &udp_socket, None)
-}
-
-fn start_server_process(tun_fd: File, udp_socket: UdpSocket) -> std::io::Result<()> {
-    loop {
-        let client_addr: SocketAddr = loop {
-            if STOP_SIGNAL.load(Ordering::Relaxed) {
-                eprintln!("Exiting waiting new client loop");
-                return Ok(());
-            }
-            match udp_socket.recv_from(&mut []) {
-                Ok((_, client_addr)) => {
-                    break client_addr;
-                }
-                Err(ref e) if e.kind() == ErrorKind::WouldBlock => continue,
-                Err(e) => return Err(e),
-            }
-        };
-        start_process_threads(&tun_fd, &udp_socket, Some(client_addr))?;
+        SIDE_CLIENT => start_client_process(tun_fd, udp_socket, client_addr, stop_signal),
+        SIDE_SERVER => start_process_threads(tun_fd, udp_socket, client_addr, stop_signal),
+        _ => Err(new_io_err("unknown side to make initializing handshake")),
     }
+}
+
+fn start_client_process(
+    tun_fd: File,
+    udp_socket: UdpSocket,
+    client_addr: Arc<RwLock<SocketAddr>>,
+    stop_signal: Arc<AtomicBool>,
+) -> std::io::Result<()> {
+    udp_socket.connect(*client_addr.read().map_err(map_io_err)?)?;
+    start_process_threads(tun_fd, udp_socket, client_addr, stop_signal)
 }
 
 fn start_process_threads(
-    tun_fd: &File,
-    udp_socket: &UdpSocket,
-    client_addr: Option<SocketAddr>,
+    tun_fd: File,
+    udp_socket: UdpSocket,
+    client_addr: Arc<RwLock<SocketAddr>>,
+    stop_signal: Arc<AtomicBool>,
 ) -> std::io::Result<()> {
-    const THREADS: u8 = 2;
-    ACTIVE_THREADS.fetch_add(THREADS, Ordering::Relaxed);
-    let (res_s, res_r) = mpsc::channel::<std::io::Result<()>>();
-
     let tun_fd_ = tun_fd.try_clone()?;
     let udp_socket_ = udp_socket.try_clone()?;
-    let res_s_ = res_s.clone();
+    let client_addr_ = client_addr.clone();
+    let stop_signal_ = stop_signal.clone();
+    let (tun_proc_s, tun_proc_r) = channel::<()>();
     thread::spawn(move || {
-        let res = tun_process(tun_fd_, udp_socket_, client_addr);
-        if let Err(e) = res_s_.send(res) {
-            final_error(e, "Failed to send tun process result");
+        if let Err(e) = tun_process(tun_fd_, udp_socket_, client_addr_, stop_signal_) {
+            eprintln!("Failed to run TUN process: {e}");
+        }
+        if let Err(e) = tun_proc_s.send(()) {
+            eprintln!("Failed to send that tun process exited: {e}")
         }
     });
-    let tun_fd_ = tun_fd.try_clone()?;
-    let udp_socket_ = udp_socket.try_clone()?;
-    thread::spawn(move || {
-        let res = rpc_process(tun_fd_, udp_socket_);
-        if let Err(e) = res_s.send(res) {
-            final_error(e, "Failed to send rpc process result");
-        }
-    });
-
-    let mut last_err: Option<std::io::Error> = None;
-    for _ in 0..THREADS {
-        match res_r.recv() {
-            Ok(res) => {
-                if res.is_err() {
-                    last_err = Some(res.unwrap_err())
-                }
-            }
-            Err(e) => {
-                final_error(e, "Failed to receive result from process thread");
-            }
-        }
+    if let Err(e) = rpc_process(tun_fd, udp_socket, client_addr, stop_signal) {
+        eprintln!("Failed to run RPC process: {e}");
     }
-
-    ACTIVE_THREADS.fetch_sub(THREADS, Ordering::Relaxed);
-    if let Some(e) = last_err {
-        return Err(e);
-    }
-    Ok(())
+    tun_proc_r.recv_timeout(Duration::from_secs(1)).map_err(map_io_err)
 }
 
 fn tun_process(
     mut tun_fd: File,
     udp_socket: UdpSocket,
-    client_addr: Option<SocketAddr>,
+    client_addr: Arc<RwLock<SocketAddr>>,
+    stop_signal: Arc<AtomicBool>,
 ) -> std::io::Result<()> {
     loop {
-        if STOP_SIGNAL.load(Ordering::Relaxed) {
+        if stop_signal.load(Ordering::Relaxed) {
+            eprintln!("Stop signal received for TUN process");
             return Ok(());
         }
         let mut buffer = vec![0; MTU];
@@ -178,11 +139,7 @@ fn tun_process(
             Ok(n) => {
                 let buffer = &buffer[..n];
                 eprintln!("Received packet from TUN: {:?}", buffer);
-                if let Some(client_addr) = client_addr {
-                    udp_socket.send_to(buffer, client_addr)?;
-                } else {
-                    udp_socket.send(buffer)?;
-                }
+                udp_socket.send_to(buffer, *client_addr.read().map_err(map_io_err)?)?;
             }
             Err(ref e) if e.kind() == ErrorKind::WouldBlock => continue,
             Err(e) => return Err(e),
@@ -190,20 +147,32 @@ fn tun_process(
     }
 }
 
-fn rpc_process(mut tun_fd: File, udp_socket: UdpSocket) -> std::io::Result<()> {
+fn rpc_process(
+    mut tun_fd: File,
+    udp_socket: UdpSocket,
+    client_addr: Arc<RwLock<SocketAddr>>,
+    stop_signal: Arc<AtomicBool>,
+) -> std::io::Result<()> {
     loop {
-        if STOP_SIGNAL.load(Ordering::Relaxed) {
+        if stop_signal.load(Ordering::Relaxed) {
+            eprintln!("Stop signal received for RPC process");
             return Ok(());
         }
         let mut buffer = vec![0; MTU];
-        match udp_socket.recv(&mut buffer) {
-            Ok(n) => {
+        match udp_socket.recv_from(&mut buffer) {
+            Ok((n, addr)) => {
                 let buffer = &buffer[..n];
                 eprintln!("Received packet from RPC: {:?}", buffer);
+                if client_addr.read().map_err(map_io_err)?.clone().ne(&addr) {
+                    eprintln!("Connected new client {addr}");
+                    *client_addr.write().map_err(map_io_err)? = addr;
+                    continue;
+                }
                 let _ = tun_fd.write(buffer)?;
             }
             Err(ref e) if e.kind() == ErrorKind::WouldBlock => continue,
             Err(ref e) if e.kind() == ErrorKind::ConnectionRefused => continue,
+            Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
         }
     }
@@ -211,9 +180,4 @@ fn rpc_process(mut tun_fd: File, udp_socket: UdpSocket) -> std::io::Result<()> {
 
 fn new_io_err(msg: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, msg)
-}
-
-fn final_error<T: ToString>(e: T, prefix: &str) {
-    eprintln!("{prefix}: {}", e.to_string());
-    std::process::exit(1);
 }

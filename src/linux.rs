@@ -115,7 +115,7 @@ impl Interface {
         ioctl(&tun_fd, TUNSETIFF, &mut if_req)
             .map_err(|e| map_io_err_msg(e, "failed to create tun device"))?;
 
-        // ip addr add 10.0.0.1/25 dev tun0
+        // ip addr add 10.0.0.1/24 dev tun0
 
         let udp_socket = UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0))?;
         let ip_fd = udp_socket.as_raw_fd();
