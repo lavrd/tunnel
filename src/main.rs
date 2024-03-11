@@ -11,11 +11,14 @@ use std::{
     time::Duration,
 };
 
+use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
 use clap::{command, Parser, Subcommand};
+use ed25519_dalek::SigningKey;
 use ipnet::Ipv4Net;
 
 #[cfg(target_os = "linux")]
 use linux::Interface;
+use rand::rngs::OsRng;
 
 mod ioctl;
 #[cfg(target_os = "linux")]
@@ -28,21 +31,6 @@ const MTU: usize = 512;
 #[clap(name = "tunnel")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    /// Set tunnel system network interface name.
-    #[arg(long)]
-    #[arg(default_value = "tun0")]
-    tun_iface_name: String,
-    /// Set tunnel system network interface IP address.
-    #[arg(long)]
-    tun_iface_ip: Ipv4Net,
-    /// UDP server IP address.
-    #[arg(long)]
-    #[arg(default_value = "0.0.0.0")]
-    udp_server_ip: String,
-    /// Set UDP server port number.
-    #[arg(long)]
-    #[arg(default_value = "6688")]
-    upd_server_port: u16,
     #[clap(subcommand)]
     command: Commands,
 }
@@ -50,20 +38,43 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Run tunnel.
-    Run {},
+    Run {
+        /// Set tunnel system network interface name.
+        #[arg(long)]
+        #[arg(default_value = "tun0")]
+        tun_iface_name: String,
+        /// Set tunnel system network interface IP address.
+        #[arg(long)]
+        tun_iface_ip: Ipv4Net,
+        /// UDP server IP address.
+        #[arg(long)]
+        #[arg(default_value = "0.0.0.0")]
+        udp_server_ip: String,
+        /// Set UDP server port number.
+        #[arg(long)]
+        #[arg(default_value = "6688")]
+        upd_server_port: u16,
+    },
+    /// Generate new keys for data encrypting.
+    Generate {},
 }
 
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Commands::Run {} => {
+        Commands::Run {
+            tun_iface_name,
+            tun_iface_ip,
+            udp_server_ip,
+            upd_server_port,
+        } => {
             let client_addr =
-                SocketAddr::from_str(&format!("{}:{}", cli.udp_server_ip, cli.upd_server_port))
+                SocketAddr::from_str(&format!("{}:{}", udp_server_ip, upd_server_port))
                     .map_err(map_io_err)?;
             let client_addr = Arc::new(RwLock::new(client_addr));
             eprintln!(
                 "Starting TUN device with '{}' name and '{}' IP",
-                cli.tun_iface_name, cli.tun_iface_ip
+                tun_iface_name, tun_iface_ip
             );
 
             let stop_signal: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
@@ -71,15 +82,19 @@ fn main() -> std::io::Result<()> {
             signal_hook::flag::register(signal_hook::consts::SIGINT, stop_signal.clone())?;
             signal_hook::flag::register(signal_hook::consts::SIGQUIT, stop_signal.clone())?;
 
-            start_tunnel(
-                cli.tun_iface_name,
-                cli.tun_iface_ip,
-                cli.upd_server_port,
-                client_addr,
-                stop_signal,
-            )
+            start_tunnel(tun_iface_name, tun_iface_ip, upd_server_port, client_addr, stop_signal)?;
+        }
+        Commands::Generate {} => {
+            let signing_key: SigningKey = SigningKey::generate(&mut OsRng);
+            let mut private_key = String::new();
+            B64_STANDARD.encode_string(signing_key.as_bytes(), &mut private_key);
+            let mut public_key = String::new();
+            B64_STANDARD.encode_string(signing_key.verifying_key().as_bytes(), &mut public_key);
+            eprintln!("Private key: {}", private_key);
+            eprintln!("Public key: {}", public_key);
         }
     }
+    Ok(())
 }
 
 pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {

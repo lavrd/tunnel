@@ -8,3 +8,6 @@ libc = { version = "0.2.153", features = ["std"], default-features = false }
 ipnet = { version = "2.9.0", features = ["std"], default-features = false }
 signal-hook = { version = "0.3.17", features = [], default-features = false }
 clap = { version = "4.5.2", features = ["std", "derive", "help"], default-features = false }
+rand = { version = "0.8.5", features = ["std"], default-features = false }
+ed25519-dalek = { version = "2.1.1", features = ["std", "rand_core"], default-features = false }
+base64 = { version = "0.22.0", features = ["std"], default-features = false }
