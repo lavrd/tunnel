@@ -1,7 +1,8 @@
 use std::{
     fs::File,
     io::{ErrorKind, Read, Write},
-    net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
+    net::{SocketAddr, UdpSocket},
+    str::FromStr,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, RwLock,
@@ -10,6 +11,7 @@ use std::{
     time::Duration,
 };
 
+use clap::{command, Parser, Subcommand};
 use ipnet::Ipv4Net;
 
 #[cfg(target_os = "linux")]
@@ -21,29 +23,63 @@ mod linux;
 
 const MTU: usize = 512;
 
-const UDP_SOCKET_PORT: u16 = 6688;
+/// Command line utility to interact with tunnel software.
+#[derive(Parser)]
+#[clap(name = "tunnel")]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Set tunnel system network interface name.
+    #[arg(long)]
+    #[arg(default_value = "tun0")]
+    tun_iface_name: String,
+    /// Set tunnel system network interface IP address.
+    #[arg(long)]
+    tun_iface_ip: Ipv4Net,
+    /// UDP server IP address.
+    #[arg(long)]
+    #[arg(default_value = "0.0.0.0")]
+    udp_server_ip: String,
+    /// Set UDP server port number.
+    #[arg(long)]
+    #[arg(default_value = "6688")]
+    upd_server_port: u16,
+    #[clap(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Run tunnel.
+    Run {},
+}
 
 fn main() -> std::io::Result<()> {
-    let name = std::env::args().nth(1).ok_or_else(|| new_io_err("failed to find arg with name"))?;
-    let ip: Ipv4Net = std::env::args()
-        .nth(2)
-        .ok_or_else(|| new_io_err("failed to find arg with ip"))?
-        .parse()
-        .map_err(map_io_err)?;
-    let client_addr: SocketAddr = if let Some(arg) = std::env::args().nth(3) {
-        arg.parse().map_err(map_io_err)?
-    } else {
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)
-    };
-    let client_addr = Arc::new(RwLock::new(client_addr));
-    eprintln!("Starting TUN device with '{}' name and '{}' IP", name, ip);
+    let cli = Cli::parse();
+    match cli.command {
+        Commands::Run {} => {
+            let client_addr =
+                SocketAddr::from_str(&format!("{}:{}", cli.udp_server_ip, cli.upd_server_port))
+                    .map_err(map_io_err)?;
+            let client_addr = Arc::new(RwLock::new(client_addr));
+            eprintln!(
+                "Starting TUN device with '{}' name and '{}' IP",
+                cli.tun_iface_name, cli.tun_iface_ip
+            );
 
-    let stop_signal: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(signal_hook::consts::SIGTERM, stop_signal.clone())?;
-    signal_hook::flag::register(signal_hook::consts::SIGINT, stop_signal.clone())?;
-    signal_hook::flag::register(signal_hook::consts::SIGQUIT, stop_signal.clone())?;
+            let stop_signal: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+            signal_hook::flag::register(signal_hook::consts::SIGTERM, stop_signal.clone())?;
+            signal_hook::flag::register(signal_hook::consts::SIGINT, stop_signal.clone())?;
+            signal_hook::flag::register(signal_hook::consts::SIGQUIT, stop_signal.clone())?;
 
-    start_tunnel(name, ip, client_addr, stop_signal)
+            start_tunnel(
+                cli.tun_iface_name,
+                cli.tun_iface_ip,
+                cli.upd_server_port,
+                client_addr,
+                stop_signal,
+            )
+        }
+    }
 }
 
 pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {
@@ -57,13 +93,14 @@ pub(crate) fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
 fn start_tunnel(
     name: String,
     ip: Ipv4Net,
+    udp_server_port: u16,
     client_addr: Arc<RwLock<SocketAddr>>,
     stop_signal: Arc<AtomicBool>,
 ) -> std::io::Result<()> {
     let iface = Interface::new(name, ip, MTU)?;
     let tun_fd = iface.into_tun_fd();
 
-    let udp_socket = UdpSocket::bind(format!("0.0.0.0:{UDP_SOCKET_PORT}"))?;
+    let udp_socket = UdpSocket::bind(format!("0.0.0.0:{udp_server_port}"))?;
     udp_socket.set_write_timeout(Some(Duration::from_millis(500)))?;
     udp_socket.set_read_timeout(Some(Duration::from_millis(500)))?;
 
@@ -145,7 +182,6 @@ fn rpc_process(
                 if client_addr.read().map_err(map_io_err)?.clone().ne(&addr) {
                     eprintln!("Connected new client {addr}");
                     *client_addr.write().map_err(map_io_err)? = addr;
-                    continue;
                 }
                 let _ = tun_fd.write(buffer)?;
             }
