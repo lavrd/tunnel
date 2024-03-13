@@ -13,12 +13,12 @@ use std::{
 
 use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
 use clap::{command, Parser, Subcommand};
-use ed25519_dalek::SigningKey;
+use ed25519_dalek::{SigningKey, VerifyingKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
 use ipnet::Ipv4Net;
+use rand::rngs::OsRng;
 
 #[cfg(target_os = "linux")]
-use linux::Interface;
-use rand::rngs::OsRng;
+use crate::linux::Interface;
 
 mod ioctl;
 #[cfg(target_os = "linux")]
@@ -45,6 +45,7 @@ enum Commands {
         tun_iface_name: String,
         /// Set tunnel system network interface IP address.
         #[arg(long)]
+        #[arg(default_value = "10.0.0.1/24")]
         tun_iface_ip: Ipv4Net,
         /// UDP server IP address.
         #[arg(long)]
@@ -54,6 +55,10 @@ enum Commands {
         #[arg(long)]
         #[arg(default_value = "6688")]
         upd_server_port: u16,
+        /// Private key as base64.
+        private_key: String,
+        /// Client public key ase base64.
+        client_public_key: String,
     },
     /// Generate new keys for data encrypting.
     Generate {},
@@ -67,7 +72,17 @@ fn main() -> std::io::Result<()> {
             tun_iface_ip,
             udp_server_ip,
             upd_server_port,
+            private_key,
+            client_public_key,
         } => {
+            let mut signing_key: [u8; SECRET_KEY_LENGTH] = [0; SECRET_KEY_LENGTH];
+            B64_STANDARD.decode_slice(private_key, &mut signing_key).map_err(map_io_err)?;
+            let _signing_key = SigningKey::from_bytes(&signing_key);
+
+            let mut verifying_key: [u8; PUBLIC_KEY_LENGTH] = [0; PUBLIC_KEY_LENGTH];
+            B64_STANDARD.decode_slice(client_public_key, &mut verifying_key).map_err(map_io_err)?;
+            let _verifying_key = VerifyingKey::from_bytes(&verifying_key);
+
             let client_addr =
                 SocketAddr::from_str(&format!("{}:{}", udp_server_ip, upd_server_port))
                     .map_err(map_io_err)?;
