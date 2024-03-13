@@ -13,9 +13,10 @@ use std::{
 
 use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
 use clap::{command, Parser, Subcommand};
-use ed25519_dalek::{SigningKey, VerifyingKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
+use ed25519_dalek::{SigningKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
 use ipnet::Ipv4Net;
 use rand::rngs::OsRng;
+use x25519_dalek::{PublicKey, StaticSecret};
 
 #[cfg(target_os = "linux")]
 use crate::linux::Interface;
@@ -55,9 +56,9 @@ enum Commands {
         #[arg(long)]
         #[arg(default_value = "6688")]
         upd_server_port: u16,
-        /// Private key as base64.
-        private_key: String,
-        /// Client public key ase base64.
+        /// Tunnel private key as base64.
+        tunnel_private_key: String,
+        /// Client public key as base64.
         client_public_key: String,
     },
     /// Generate new keys for data encrypting.
@@ -72,21 +73,22 @@ fn main() -> std::io::Result<()> {
             tun_iface_ip,
             udp_server_ip,
             upd_server_port,
-            private_key,
-            client_public_key,
+            tunnel_private_key: tpk,
+            client_public_key: cpk,
         } => {
-            let mut signing_key: [u8; SECRET_KEY_LENGTH] = [0; SECRET_KEY_LENGTH];
-            B64_STANDARD.decode_slice(private_key, &mut signing_key).map_err(map_io_err)?;
-            let _signing_key = SigningKey::from_bytes(&signing_key);
-
-            let mut verifying_key: [u8; PUBLIC_KEY_LENGTH] = [0; PUBLIC_KEY_LENGTH];
-            B64_STANDARD.decode_slice(client_public_key, &mut verifying_key).map_err(map_io_err)?;
-            let _verifying_key = VerifyingKey::from_bytes(&verifying_key);
-
             let client_addr =
                 SocketAddr::from_str(&format!("{}:{}", udp_server_ip, upd_server_port))
                     .map_err(map_io_err)?;
             let client_addr = Arc::new(RwLock::new(client_addr));
+
+            let mut tunnel_private_key: [u8; SECRET_KEY_LENGTH] = [0; SECRET_KEY_LENGTH];
+            B64_STANDARD.decode_slice(tpk, &mut tunnel_private_key).map_err(map_io_err)?;
+            let mut client_public_key: [u8; PUBLIC_KEY_LENGTH] = [0; PUBLIC_KEY_LENGTH];
+            B64_STANDARD.decode_slice(cpk, &mut client_public_key).map_err(map_io_err)?;
+            let static_secret = StaticSecret::from(tunnel_private_key);
+            let client_public_key = PublicKey::from(client_public_key);
+            let _shared_secret = static_secret.diffie_hellman(&client_public_key);
+
             eprintln!(
                 "Starting TUN device with '{}' name and '{}' IP",
                 tun_iface_name, tun_iface_ip

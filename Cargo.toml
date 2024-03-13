@@ -10,4 +10,5 @@ signal-hook = { version = "0.3.17", features = [], default-features = false }
 clap = { version = "4.5.2", features = ["std", "derive", "help"], default-features = false }
 rand = { version = "0.8.5", features = ["std"], default-features = false }
 ed25519-dalek = { version = "2.1.1", features = ["std", "rand_core"], default-features = false }
+x25519-dalek = { version = "2.0.1", features = ["static_secrets"], default-features = false }
 base64 = { version = "0.22.0", features = ["std"], default-features = false }
