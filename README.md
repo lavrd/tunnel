@@ -31,3 +31,14 @@ cargo build && sudo target/debug/tunnel run <private_key> <client_public_key> --
 ```
 
 Trace IP packets: `tcpdump -v -i tun0 proto \\icmp`.
+
+
+### Example
+
+```shell
+# Client.
+cargo build && sudo target/debug/tunnel run 7y6VlMKnBWxFoCc06E2BCEaBTk9rKu8MQOwsjGcmHdw= ioABH93leNl4oiHy9k8O5NVPM7W8TEwgj9IGtycZUKM= --udp-server-ip 127.0.0.1
+
+# Server.
+cargo build && sudo target/debug/tunnel run nE84pUNAM0LsWx+tjJLElU9vEEi1fm5UxucRyTfTrok= /i4WwxYB7KPoFNFCiIR67KpROr6f8Y6Ht56Z2LXZOLE= --tun-iface-ip 10.0.0.2/24
+```
