@@ -32,7 +32,6 @@ cargo build && sudo target/debug/tunnel run <private_key> <client_public_key> --
 
 Trace IP packets: `tcpdump -v -i tun0 proto \\icmp`.
 
-
 ### Example
 
 ```shell

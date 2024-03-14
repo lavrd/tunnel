@@ -95,7 +95,7 @@ fn main() -> std::io::Result<()> {
             B64_STANDARD
                 .decode_slice(b64_client_public_key, &mut raw_client_public_key)
                 .map_err(map_io_err)?;
-            let client_public_key = ed25519_to_x25519_public_key(raw_client_public_key);
+            let client_public_key = ed25519_to_x25519_public_key(raw_client_public_key)?;
 
             let shared_secret: SharedSecret = tunnel_private_key.diffie_hellman(&client_public_key);
             let cipher = Arc::new(ChaCha20Poly1305::new(Key::from_slice(shared_secret.as_bytes())));
@@ -277,14 +277,14 @@ fn ed25519_to_x25519_private_key(other: &SecretKey) -> StaticSecret {
     StaticSecret::from(output)
 }
 
-fn ed25519_to_x25519_public_key(other: [u8; PUBLIC_KEY_LENGTH]) -> PublicKey {
+fn ed25519_to_x25519_public_key(other: [u8; PUBLIC_KEY_LENGTH]) -> std::io::Result<PublicKey> {
     // https://github.com/dalek-cryptography/x25519-dalek/issues/53
-    curve25519_dalek::edwards::CompressedEdwardsY(other)
+    Ok(curve25519_dalek::edwards::CompressedEdwardsY(other)
         .decompress()
-        .unwrap()
+        .ok_or(new_io_err("failed to decompress public key"))?
         .to_montgomery()
         .to_bytes()
-        .into()
+        .into())
 }
 
 fn new_io_err(msg: &str) -> std::io::Error {
