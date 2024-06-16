@@ -22,10 +22,15 @@ use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
 #[cfg(target_os = "linux")]
 use crate::linux::Interface;
+#[cfg(target_os = "macos")]
+use crate::macos::Interface;
 
+#[cfg(target_os = "linux")]
 mod ioctl;
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "macos")]
+mod macos;
 
 const MTU: usize = 512;
 
@@ -136,6 +141,7 @@ pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, e.to_string().as_str())
 }
 
+#[cfg(target_os = "linux")]
 pub(crate) fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, format!("{}: {}", e.to_string(), msg))
 }
