@@ -36,6 +36,10 @@ const MTU: usize = 512;
 
 const NONCE_LENGTH: usize = 12;
 
+const NOTIFICATION_IDENTIFIER: &str = include_str!("../identifier.txt");
+const NOTIFICATION_TITLE: &str = "Test";
+const NOTIFICATION_DESCRIPTION: &str = "Notification";
+
 /// Command line utility to interact with tunnel software.
 #[derive(Parser)]
 #[clap(name = "tunnel")]
@@ -72,6 +76,18 @@ enum Commands {
     },
     /// Generate new keys for data encrypting.
     Generate {},
+    Notify {},
+}
+
+extern "C" {
+    fn notify(
+        identifier_ptr: *const u8,
+        identifier_len: u64,
+        title_ptr: *const u8,
+        title_len: u64,
+        description_ptr: *const u8,
+        description_len: u64,
+    ) -> u8;
 }
 
 fn main() -> std::io::Result<()> {
@@ -132,6 +148,23 @@ fn main() -> std::io::Result<()> {
             B64_STANDARD.encode_string(signing_key.verifying_key().as_bytes(), &mut public_key);
             eprintln!("Private key: {}", private_key);
             eprintln!("Public key: {}", public_key);
+        }
+        Commands::Notify {} => {
+            let result: u8 = unsafe {
+                notify(
+                    NOTIFICATION_IDENTIFIER.as_ptr(),
+                    NOTIFICATION_IDENTIFIER.len() as u64,
+                    NOTIFICATION_TITLE.as_ptr(),
+                    NOTIFICATION_TITLE.len() as u64,
+                    NOTIFICATION_DESCRIPTION.as_ptr(),
+                    NOTIFICATION_DESCRIPTION.len() as u64,
+                )
+            };
+            match result {
+                0 => eprintln!("Notification successfully sent"),
+                101 => eprintln!("User didn't grant a notification access to our applicaiton"),
+                result => eprintln!("Unknown notification result: {result}"),
+            }
         }
     }
     Ok(())

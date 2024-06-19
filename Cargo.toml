@@ -2,16 +2,31 @@
 name = "tunnel"
 version = "0.1.0"
 edition = "2021"
+description = "Simple network tunnel as an example"
 
 [dependencies]
-libc = { version = "0.2.153", features = ["std"], default-features = false }
+libc = { version = "0.2.155", features = ["std"], default-features = false }
 ipnet = { version = "2.9.0", features = ["std"], default-features = false }
 signal-hook = { version = "0.3.17", features = [], default-features = false }
-clap = { version = "4.5.2", features = ["std", "derive", "help"], default-features = false }
+clap = { version = "4.5.7", features = ["std", "derive", "help"], default-features = false }
 rand = { version = "0.8.5", features = ["std"], default-features = false }
-curve25519-dalek = { version = "4.1.2", features = [], default-features = false }
+curve25519-dalek = { version = "4.1.3", features = [], default-features = false }
 ed25519-dalek = { version = "2.1.1", features = ["std", "rand_core"], default-features = false }
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"], default-features = false }
 chacha20poly1305 = { version = "0.10.1", features = ["alloc", "getrandom"], default-features = false }
 sha2 = { version = "0.10.8", features = [], default-features = false }
-base64 = { version = "0.22.0", features = ["std"], default-features = false }
+base64 = { version = "0.22.1", features = ["std"], default-features = false }
+
+[package.metadata.bundle]
+name = "tunnel"
+identifier = "com.example.simple.tunnel"
+icon = [
+  "bundle/macos/images/32x32.png",
+  "bundle/macos/images/128x128.png",
+  "bundle/macos/images/128x128@2x.png",
+]
+
+[build-dependencies]
+serde = { version = "1.0.203", features = ["derive"], default-features = false }
+serde_json = { version = "1.0.117", features = ["std"], default-features = false }
+toml = { version = "0.8.14", features = ["parse"], default-features = false }
