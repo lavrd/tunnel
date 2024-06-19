@@ -27,6 +27,8 @@ icon = [
 ]
 
 [build-dependencies]
+
+[target.'cfg(target_os = "macos")'.build-dependencies]
 serde = { version = "1.0.203", features = ["derive"], default-features = false }
 serde_json = { version = "1.0.117", features = ["std"], default-features = false }
 toml = { version = "0.8.14", features = ["parse"], default-features = false }
