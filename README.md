@@ -42,6 +42,13 @@ cargo build && sudo target/debug/tunnel run 7y6VlMKnBWxFoCc06E2BCEaBTk9rKu8MQOws
 cargo build && sudo target/debug/tunnel run nE84pUNAM0LsWx+tjJLElU9vEEi1fm5UxucRyTfTrok= /i4WwxYB7KPoFNFCiIR67KpROr6f8Y6Ht56Z2LXZOLE= --tun-iface-ip 10.0.0.2/24
 ```
 
+## Docker
+
+```shell
+make build_docker
+docker run --rm simple-tunnel run ...
+```
+
 ## macOS notifications
 
 ### Signing

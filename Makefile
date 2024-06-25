@@ -7,6 +7,9 @@ lint: format
 build:
 	@cargo build
 
+build_docker:
+	docker build -t simple-tunnel -f Dockerfile .
+
 build_macos_notifications:
 	@cargo-bundle bundle --features notifications
 	@codesign --force --sign app-signer -o runtime \
