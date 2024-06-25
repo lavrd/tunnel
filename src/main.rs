@@ -31,6 +31,7 @@ mod ioctl;
 mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(feature = "notifications")]
 mod notifications;
 
 const MTU: usize = 512;
@@ -73,6 +74,7 @@ enum Commands {
     },
     /// Generate new keys for data encrypting.
     Generate {},
+    #[cfg(feature = "notifications")]
     /// Temporary command to test system notifications.
     Notify {},
 }
@@ -136,6 +138,7 @@ fn main() -> std::io::Result<()> {
             eprintln!("Private key: {}", private_key);
             eprintln!("Public key: {}", public_key);
         }
+        #[cfg(feature = "notifications")]
         Commands::Notify {} => notifications::send_notification(),
     }
     Ok(())

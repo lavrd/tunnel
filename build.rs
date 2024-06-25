@@ -1,4 +1,4 @@
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", feature = "notifications"))]
 mod macos {
     #[derive(serde::Deserialize)]
     struct Cargo {
@@ -38,20 +38,20 @@ mod macos {
         runtime_library_paths: Vec<String>,
     }
 
-    pub(crate) fn update_identifier() {
+    pub(super) fn update_identifier() {
         let content = std::fs::read_to_string("Cargo.toml").unwrap();
         let cargo: Cargo = toml::from_str(&content).unwrap();
         std::fs::write("identifier.txt", cargo.package.metadata.bundle.identifier).unwrap();
     }
 
-    pub(crate) fn link_swift() {
+    pub(super) fn link_swift() {
         let swift_target_info = get_swift_target_info();
         swift_target_info.paths.runtime_library_paths.iter().for_each(|path| {
             println!("cargo:rustc-link-search=native={}", path);
         });
     }
 
-    pub(crate) fn link_swift_package(package_name: &str, package_root: &str) {
+    pub(super) fn link_swift_package(package_name: &str, package_root: &str) {
         let profile = std::env::var("PROFILE").unwrap();
         if !std::process::Command::new("swift")
             .args(["build", "-c", &profile])
@@ -79,10 +79,14 @@ mod macos {
         serde_json::from_slice(&swift_target_info_str).unwrap()
     }
 }
-#[cfg(target_os = "macos")]
+
+#[cfg(all(target_os = "macos", feature = "notifications"))]
 use macos::*;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(not(target_os = "macos"), not(feature = "notifications")))]
+fn main() {}
+
+#[cfg(all(target_os = "macos", feature = "notifications"))]
 fn main() {
     update_identifier();
     link_swift();

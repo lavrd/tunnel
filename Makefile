@@ -4,9 +4,11 @@ format:
 lint: format
 	cargo clippy --tests --workspace --all-targets --all-features -- -D warnings
 
-build_macos:
+build:
 	@cargo build
-	@cargo-bundle bundle
+
+build_macos_notifications:
+	@cargo-bundle bundle --features notifications
 	@codesign --force --sign app-signer -o runtime \
 		--entitlements macos_bundle/com.example.simple.tunnel.xcent \
 		--timestamp\=none --generate-entitlement-der \

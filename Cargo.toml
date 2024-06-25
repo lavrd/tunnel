@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "Simple network tunnel as an example"
 
+[features]
+notifications = []
+
 [dependencies]
 libc = { version = "0.2.155", features = ["std"], default-features = false }
 ipnet = { version = "2.9.0", features = ["std"], default-features = false }
