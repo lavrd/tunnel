@@ -17,18 +17,18 @@ chacha20poly1305 = { version = "0.10.1", features = ["alloc", "getrandom"], defa
 sha2 = { version = "0.10.8", features = [], default-features = false }
 base64 = { version = "0.22.1", features = ["std"], default-features = false }
 
-[package.metadata.bundle]
-name = "tunnel"
-identifier = "com.example.simple.tunnel"
-icon = [
-  "bundle/macos/images/32x32.png",
-  "bundle/macos/images/128x128.png",
-  "bundle/macos/images/128x128@2x.png",
-]
-
 [build-dependencies]
 
 [target.'cfg(target_os = "macos")'.build-dependencies]
 serde = { version = "1.0.203", features = ["derive"], default-features = false }
-serde_json = { version = "1.0.117", features = ["std"], default-features = false }
+serde_json = { version = "1.0.118", features = ["std"], default-features = false }
 toml = { version = "0.8.14", features = ["parse"], default-features = false }
+
+[package.metadata.bundle]
+name = "tunnel"
+identifier = "com.example.simple.tunnel"
+icon = [
+  "macos_bundle/images/32x32.png",
+  "macos_bundle/images/128x128.png",
+  "macos_bundle/images/128x128@2x.png",
+]

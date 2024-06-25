@@ -31,17 +31,11 @@ mod ioctl;
 mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
+mod notifications;
 
 const MTU: usize = 512;
 
 const NONCE_LENGTH: usize = 12;
-
-#[cfg(target_os = "macos")]
-const NOTIFICATION_IDENTIFIER: &str = include_str!("../identifier.txt");
-#[cfg(target_os = "macos")]
-const NOTIFICATION_TITLE: &str = "Test";
-#[cfg(target_os = "macos")]
-const NOTIFICATION_DESCRIPTION: &str = "Notification";
 
 /// Command line utility to interact with tunnel software.
 #[derive(Parser)]
@@ -79,19 +73,8 @@ enum Commands {
     },
     /// Generate new keys for data encrypting.
     Generate {},
+    /// Temporary command to test system notifications.
     Notify {},
-}
-
-#[cfg(target_os = "macos")]
-extern "C" {
-    fn notify(
-        identifier_ptr: *const u8,
-        identifier_len: u64,
-        title_ptr: *const u8,
-        title_len: u64,
-        description_ptr: *const u8,
-        description_len: u64,
-    ) -> u8;
 }
 
 fn main() -> std::io::Result<()> {
@@ -153,7 +136,7 @@ fn main() -> std::io::Result<()> {
             eprintln!("Private key: {}", private_key);
             eprintln!("Public key: {}", public_key);
         }
-        Commands::Notify {} => send_notification(),
+        Commands::Notify {} => notifications::send_notification(),
     }
     Ok(())
 }
@@ -165,30 +148,6 @@ pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {
 #[cfg(target_os = "linux")]
 pub(crate) fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, format!("{}: {}", e.to_string(), msg))
-}
-
-#[cfg(target_os = "macos")]
-fn send_notification() {
-    let result: u8 = unsafe {
-        notify(
-            NOTIFICATION_IDENTIFIER.as_ptr(),
-            NOTIFICATION_IDENTIFIER.len() as u64,
-            NOTIFICATION_TITLE.as_ptr(),
-            NOTIFICATION_TITLE.len() as u64,
-            NOTIFICATION_DESCRIPTION.as_ptr(),
-            NOTIFICATION_DESCRIPTION.len() as u64,
-        )
-    };
-    match result {
-        0 => eprintln!("Notification successfully sent"),
-        101 => eprintln!("User didn't grant a notification access to our applicaiton"),
-        result => eprintln!("Unknown notification result: {result}"),
-    }
-}
-
-#[cfg(not(target_os = "macos"))]
-fn send_notification() {
-    eprintln!("Notifications are working only on macOS right now")
 }
 
 fn start_tunnel(

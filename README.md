@@ -66,6 +66,6 @@ After signing key creation you need to be able to build macOS bundle after Rust 
 
 ### Build
 
-To build you can use target from Makefile: `make build`. It will be built, bundled and signed.
+To build you can use target from Makefile: `make build_macos`. It will be built, bundled and signed.
 
 Then, to execute binary, use following binary: `target/debug/bundle/osx/tunnel.app/Contents/MacOS/tunnel`.
