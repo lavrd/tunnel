@@ -13,7 +13,7 @@ cargo run -- generate
 ### Client
 
 ```shell
-cargo build && sudo target/debug/tunnel run <private_key> <client_public_key> --udp-server-ip 127.0.0.1
+cargo build && sudo target/debug/tunnel run <client_private_key> <server_public_key> --udp-server-ip 127.0.0.1
 sudo ip route add 1.1.1.1/32 dev tun0
 ping 1.1.1.1 -c 1
 ```
@@ -27,7 +27,7 @@ sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 sysctl net.ipv4.ip_forward
 sudo sysctl -w net.ipv4.ip_forward=1
 
-cargo build && sudo target/debug/tunnel run <private_key> <client_public_key> --tun-iface-ip 10.0.0.2/24
+cargo build && sudo target/debug/tunnel run <server_private_key> <client_public_key> --tun-iface-ip 10.0.0.2/24
 ```
 
 Trace IP packets: `tcpdump -v -i tun0 proto \\icmp`.
@@ -42,12 +42,35 @@ cargo build && sudo target/debug/tunnel run 7y6VlMKnBWxFoCc06E2BCEaBTk9rKu8MQOws
 cargo build && sudo target/debug/tunnel run nE84pUNAM0LsWx+tjJLElU9vEEi1fm5UxucRyTfTrok= /i4WwxYB7KPoFNFCiIR67KpROr6f8Y6Ht56Z2LXZOLE= --tun-iface-ip 10.0.0.2/24
 ```
 
-## Docker
+## Run in Docker
+
+In order to run the tunnel (client and server) in the Docker you first need to build docker image.
 
 ```shell
 make build_docker
-docker run --rm simple-tunnel run ...
 ```
+
+After that you need to start tunnel server.
+
+```shell
+make run_docker_server
+```
+
+And finally you can start tunne client. To run this command [jq](https://github.com/jqlang/jq) is required to be installed.
+
+```shell
+make run_docker_client
+```
+
+Wait until client HTTP server will be started.
+
+To test that tunnel is working you can request HTTP server.
+
+```shell
+curl -iX GET 'http://127.0.0.1:8888/resolve?name=cloudflare.com'
+```
+
+You can see in the client and server tunnels logs that packets were going through them before reached `1.1.1.1` DNS server.
 
 ## macOS notifications
 
@@ -67,7 +90,7 @@ codesign -f -s "app-signer" <some-file> --deep
 
 ### Bundling
 
-After signing key creation you need to be able to build macOS bundle after Rust binary compliation. Install [this tool](https://github.com/burtonageo/cargo-bundle) to do it automatically.
+After signing key creation you need to be able to build macOS bundle after Rust binary compilation. Install [this tool](https://github.com/burtonageo/cargo-bundle) to do it automatically.
 
 `Cargo.toml` contains `[package.metadata.bundle]` section to describe bundle metadata. Also we have some configuration in `./macos_bundle` folder.
 

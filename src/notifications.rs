@@ -38,7 +38,7 @@ mod macos {
         };
         match result {
             0 => eprintln!("Notification successfully sent"),
-            101 => eprintln!("User didn't grant a notification access to our applicaiton"),
+            101 => eprintln!("User didn't grant a notification access to our application"),
             result => eprintln!("Unknown notification result: {result}"),
         }
     }
