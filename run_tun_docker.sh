@@ -8,7 +8,7 @@ if [ "$SERVER" == "1" ]; then
 elif [ "$CLIENT" == "1" ]; then
     ./tunnel run \
         ${TUNNEL_PRIVATE_KEY} ${CLIENT_PUBLIC_KEY} \
-        --tun-iface-name tun1  --tun-iface-ip 11.0.0.8/24 \
+        --tun-iface-name tun1  --tun-iface-ip 10.0.0.9/24 \
         --udp-server-ip ${SERVER_DOCKER_IP} &
     sleep 1 # to wait until tun1 interface will be up
     ip route add 1.1.1.1/32 dev tun1 &
