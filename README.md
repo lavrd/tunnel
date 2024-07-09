@@ -4,6 +4,8 @@ Simple network tunnel as an example.
 
 ## Usage
 
+_At the moment tunnel is working on only on Linux._
+
 Generate private and public keys.
 
 ```shell
@@ -21,7 +23,7 @@ ping 1.1.1.1 -c 1
 ### Server
 
 ```shell
-iptables-save
+sudo iptables-save
 sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 
 sysctl net.ipv4.ip_forward

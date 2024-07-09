@@ -1,7 +1,6 @@
 #!/bin/sh
 
 if [ "$SERVER" == "1" ]; then
-    iptables-save
     iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
     ./tunnel run \
         ${TUNNEL_PRIVATE_KEY} ${CLIENT_PUBLIC_KEY} \
