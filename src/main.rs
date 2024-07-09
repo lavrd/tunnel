@@ -1,6 +1,7 @@
 use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
 use clap::{command, Parser, Subcommand};
 use ed25519_dalek::SigningKey;
+#[cfg(target_os = "linux")]
 use ipnet::Ipv4Net;
 use rand::rngs::OsRng;
 
@@ -24,6 +25,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    #[cfg(target_os = "linux")]
     /// Run tunnel.
     Run {
         /// Set tunnel system network interface name.
@@ -57,6 +59,7 @@ enum Commands {
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     match cli.command {
+        #[cfg(target_os = "linux")]
         Commands::Run {
             tun_iface_name,
             tun_iface_ip,
