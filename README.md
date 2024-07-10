@@ -116,7 +116,7 @@ curl -iX GET 'http://127.0.0.1:8888/resolve?name=cloudflare.com'
 
 You can see in the client and server tunnels logs that packets were going through them before reached `1.1.1.1` DNS server.
 
-### Troubleshouting
+### Troubleshooting
 
 If you are encountering some problems and packets are not going through tunnel correctly, use `tcpdump`.
 
