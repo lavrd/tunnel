@@ -21,7 +21,7 @@ use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
 use crate::linux::Interface;
 
-const MTU: usize = 512;
+const MTU: usize = 1024;
 
 const NONCE_LENGTH: usize = 12;
 
@@ -159,7 +159,7 @@ fn rpc_process(
             eprintln!("Stop signal received for RPC process");
             return Ok(());
         }
-        let mut buffer = [0; 1024];
+        let mut buffer = [0; MTU];
         match udp_socket.recv_from(&mut buffer) {
             Ok((n, addr)) => {
                 if client_addr.read().map_err(map_io_err)?.clone().ne(&addr) {
