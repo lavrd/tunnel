@@ -21,7 +21,7 @@ use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
 use crate::linux::Interface;
 
-const MTU: usize = 1024;
+const MTU: usize = 1500;
 
 const NONCE_LENGTH: usize = 12;
 

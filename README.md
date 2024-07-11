@@ -124,7 +124,7 @@ If you are encountering some problems and packets are not going through tunnel c
 # To check only ICMP packets.
 tcpdump -v -i tun0 proto \\icmp
 # Check any packets for particular IP.
-tcpdump -i enp1s0 dst 1.1.1.1 and src 1.1.1.1
+tcpdump -i enp1s0 dst 1.1.1.1 or src 1.1.1.1
 ```
 
 ## macOS notifications
