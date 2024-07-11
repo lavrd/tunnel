@@ -6,7 +6,6 @@ use std::os::fd::FromRawFd;
 use std::ptr;
 use std::{ffi::CString, fs::File, mem};
 
-use ipnet::Ipv4Net;
 use libc::c_int;
 use libc::in_addr;
 use libc::sockaddr_in;
@@ -23,6 +22,7 @@ use libc::SIOCSIFNETMASK;
 use libc::{c_char, c_ulong, IFF_NO_PI, IFF_TUN, IFNAMSIZ, SIOCSIFFLAGS, SIOCSIFMTU};
 
 use crate::ioctl::ioctl;
+use crate::tunnel;
 
 const TUNSETIFF: c_ulong = 1074025674;
 
@@ -102,11 +102,13 @@ pub(crate) struct Interface {
 impl Interface {
     pub(crate) fn new(
         mut name: String,
-        ip: Ipv4Net,
+        ip: String,
         tun_device_mtu: usize,
     ) -> std::io::Result<Self> {
         name.truncate(IFNAMSIZ);
         let name = CString::new(name)?;
+
+        let (addr, netmask): (Ipv4Addr, Ipv4Addr) = tunnel::parse_ipv4(&ip)?;
 
         let tun_fd = open_non_blocking("/dev/net/tun")?;
         let mut if_req = IfReq::new(&name);
@@ -118,13 +120,13 @@ impl Interface {
 
         let udp_socket = UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0))?;
         let ip_fd = udp_socket.as_raw_fd();
-        let mut if_req_addr = IfReqAddr::new(&name, ip.addr());
+        let mut if_req_addr = IfReqAddr::new(&name, addr);
         ioctl(&ip_fd, SIOCSIFADDR, &mut if_req_addr)
             .map_err(|e| map_io_err_msg(e, "failed to set interface address"))?;
-        let mut if_req_dst = IfReqAddr::new(&name, ip.addr());
+        let mut if_req_dst = IfReqAddr::new(&name, addr);
         ioctl(&ip_fd, SIOCSIFDSTADDR, &mut if_req_dst)
             .map_err(|e| map_io_err_msg(e, "failed to set destination address"))?;
-        let mut if_req_mask = IfReqAddr::new(&name, ip.netmask());
+        let mut if_req_mask = IfReqAddr::new(&name, netmask);
         ioctl(&ip_fd, SIOCSIFNETMASK, &mut if_req_mask)
             .map_err(|e| map_io_err_msg(e, "failed to set network mask"))?;
         let mut if_req_mtu = IfReqMtu::new(&name, tun_device_mtu as i32);

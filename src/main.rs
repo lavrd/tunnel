@@ -1,8 +1,6 @@
 use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
 use clap::{command, Parser, Subcommand};
 use ed25519_dalek::SigningKey;
-#[cfg(target_os = "linux")]
-use ipnet::Ipv4Net;
 use rand::rngs::OsRng;
 
 #[cfg(target_os = "linux")]
@@ -35,7 +33,7 @@ enum Commands {
         /// Set tunnel system network interface IP address.
         #[arg(long)]
         #[arg(default_value = "10.0.0.1/24")]
-        tun_iface_ip: Ipv4Net,
+        tun_iface_ip: String,
         /// UDP server IP address.
         #[arg(long)]
         #[arg(default_value = "0.0.0.0")]

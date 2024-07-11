@@ -4,6 +4,9 @@ format:
 lint: format
 	cargo clippy --tests --workspace --all-targets --all-features -- -D warnings
 
+test:
+	cargo test -- --nocapture
+
 build:
 	@cargo build
 

@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{ErrorKind, Read, Write},
-    net::{SocketAddr, UdpSocket},
+    net::{Ipv4Addr, SocketAddr, UdpSocket},
     str::FromStr,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -14,7 +14,6 @@ use std::{
 use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
 use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, Key, KeyInit, Nonce};
 use ed25519_dalek::{SecretKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
-use ipnet::Ipv4Net;
 use rand::rngs::OsRng;
 use sha2::{Digest, Sha512};
 use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
@@ -27,7 +26,7 @@ const NONCE_LENGTH: usize = 12;
 
 pub(crate) fn run_tunnel(
     tun_iface_name: String,
-    tun_iface_ip: Ipv4Net,
+    tun_iface_ip: String,
     udp_server_ip: String,
     upd_server_port: u16,
     b64_tunnel_private_key: String,
@@ -62,9 +61,24 @@ pub(crate) fn run_tunnel(
     start_tunnel(tun_iface_name, tun_iface_ip, upd_server_port, client_addr, cipher, stop_signal)
 }
 
+pub(crate) fn parse_ipv4(ipv4: &str) -> std::io::Result<(Ipv4Addr, Ipv4Addr)> {
+    let (addr, prefix) = ipv4.split_once('/').ok_or(new_io_err("failed to split ipv4 address"))?;
+    let addr: Ipv4Addr = addr.parse().map_err(map_io_err)?;
+    let prefix: u8 = prefix.parse().map_err(map_io_err)?;
+    if prefix > 32 {
+        return Err(new_io_err("prefix is too big"));
+    }
+    let mut netmask: u32 = 0;
+    for i in 0..prefix {
+        netmask |= 1 << (31 - i);
+    }
+    let netmask = Ipv4Addr::from(netmask);
+    Ok((addr, netmask))
+}
+
 fn start_tunnel(
     name: String,
-    ip: Ipv4Net,
+    ip: String,
     udp_server_port: u16,
     client_addr: Arc<RwLock<SocketAddr>>,
     cipher: Arc<ChaCha20Poly1305>,
@@ -215,4 +229,30 @@ fn map_io_err<T: ToString>(e: T) -> std::io::Error {
 
 fn new_io_err(msg: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, msg)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::net::Ipv4Addr;
+
+    use ipnet::Ipv4Net;
+
+    use crate::tunnel::parse_ipv4;
+
+    #[test]
+    fn test_ipv4net_parsing() {
+        let test_cases: Vec<&str> = vec![
+            "10.0.0.1/24",
+            "10.0.0.1/32",
+            "10.0.0.1/0",
+            "10.0.0.1/0",
+            "192.168.0.1/12",
+        ];
+        for test_case in test_cases {
+            let required: Ipv4Net = test_case.parse().unwrap();
+            let (addr, netmask): (Ipv4Addr, Ipv4Addr) = parse_ipv4(test_case).unwrap();
+            assert_eq!(required.addr(), addr);
+            assert_eq!(required.netmask(), netmask);
+        }
+    }
 }
