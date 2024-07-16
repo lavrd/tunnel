@@ -91,19 +91,31 @@ cargo build && \
 In order to run the tunnel (client and server) in the Docker you first need to build docker image.
 
 ```shell
+# To build without encryption.
 make build_docker
+
+# To build with encryption capabilities.
+make build_docker_crypto
 ```
 
 After that you need to start tunnel server.
 
 ```shell
+# To run without encryption.
 make run_docker_server
+
+# To run with encryption capabilities.
+make run_docker_server_crypto
 ```
 
 And finally you can start tunne client. To run this command [jq](https://github.com/jqlang/jq) is required to be installed.
 
 ```shell
+# To run without encryption.
 make run_docker_client
+
+# To run with encryption capabilities.
+make run_docker_server_client
 ```
 
 Wait until client HTTP server will be started.
