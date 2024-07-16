@@ -56,6 +56,14 @@ enum Commands {
     Notify {},
 }
 
+#[cfg(all(
+    not(target_os = "linux"),
+    not(feature = "notifications"),
+    not(feature = "crypto")
+))]
+fn main() {}
+
+#[cfg(any(target_os = "linux", feature = "notifications", feature = "crypto"))]
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
     match cli.command {
