@@ -5,7 +5,8 @@ COPY Cargo.toml ./Cargo.toml
 COPY Cargo.lock ./Cargo.lock
 COPY build.rs ./build.rs
 COPY src ./src
-RUN cargo build --release
+ARG crypto
+RUN if [[ -z "$crypto" ]] ; then cargo build --release ; else cargo build --release --features "crypto" ; fi
 
 
 FROM golang:1.22.5-alpine3.20 AS build_dns_server

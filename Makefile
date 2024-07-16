@@ -13,6 +13,9 @@ build:
 build_docker:
 	docker build -t simple-tunnel -f Dockerfile .
 
+build_docker_crypto:
+	docker build -t simple-tunnel -f Dockerfile --build-arg crypto=1 .
+
 build_macos_notifications:
 	@cargo-bundle bundle --features notifications
 	@codesign --force --sign app-signer -o runtime \
@@ -25,6 +28,15 @@ run_docker_server:
 		--name simple-tunnel-server \
 		--cap-add=NET_ADMIN \
 		--device /dev/net/tun \
+		-e SERVER=1 \
+		--entrypoint="./run_tun_docker.sh" \
+		simple-tunnel
+
+run_docker_server_crypto:
+	docker run --rm -it \
+		--name simple-tunnel-server \
+		--cap-add=NET_ADMIN \
+		--device /dev/net/tun \
 		-e TUNNEL_PRIVATE_KEY=RFLMRBysWs2qoDMM70xF87mPTrpTxLNTZwQwIWsIw8o= \
 		-e CLIENT_PUBLIC_KEY=O+0h1KDgpw6vxQY1GUFfHhyScNpjd7EuebQvUK5L8dM= \
 		-e SERVER=1 \
@@ -32,6 +44,17 @@ run_docker_server:
 		simple-tunnel
 
 run_docker_client:
+	docker run --rm -it \
+		--name simple-tunnel-client \
+		--cap-add=NET_ADMIN \
+		--device /dev/net/tun \
+		-p 8888:8888 \
+		-e CLIENT=1 \
+		-e SERVER_DOCKER_IP=$(shell ./get_simple_tunnel_server_ip.sh) \
+		--entrypoint=./run_tun_docker.sh \
+		simple-tunnel
+
+run_docker_client_crypto:
 	docker run --rm -it \
 		--name simple-tunnel-client \
 		--cap-add=NET_ADMIN \

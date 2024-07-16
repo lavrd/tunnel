@@ -1,8 +1,7 @@
-use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
 use clap::{command, Parser, Subcommand};
-use ed25519_dalek::SigningKey;
-use rand::rngs::OsRng;
 
+#[cfg(feature = "crypto")]
+mod crypto;
 #[cfg(target_os = "linux")]
 mod ioctl;
 #[cfg(target_os = "linux")]
@@ -42,11 +41,14 @@ enum Commands {
         #[arg(long)]
         #[arg(default_value = "6688")]
         upd_server_port: u16,
+        #[cfg(feature = "crypto")]
         /// Tunnel private key as base64.
         tunnel_private_key: String,
+        #[cfg(feature = "crypto")]
         /// Client public key as base64.
         client_public_key: String,
     },
+    #[cfg(feature = "crypto")]
     /// Generate new keys for data encrypting.
     Generate {},
     #[cfg(feature = "notifications")]
@@ -63,22 +65,26 @@ fn main() -> std::io::Result<()> {
             tun_iface_ip,
             udp_server_ip,
             upd_server_port,
-            tunnel_private_key: b64_tunnel_private_key,
-            client_public_key: b64_client_public_key,
-        } => tunnel::run_tunnel(
-            tun_iface_name,
-            tun_iface_ip,
-            udp_server_ip,
-            upd_server_port,
-            b64_tunnel_private_key,
-            b64_client_public_key,
-        )?,
+            #[cfg(feature = "crypto")]
+                tunnel_private_key: b64_tunnel_private_key,
+            #[cfg(feature = "crypto")]
+                client_public_key: b64_client_public_key,
+        } => {
+            #[cfg(not(feature = "crypto"))]
+            tunnel::run_tunnel(tun_iface_name, tun_iface_ip, udp_server_ip, upd_server_port)?;
+            #[cfg(feature = "crypto")]
+            tunnel::run_tunnel(
+                tun_iface_name,
+                tun_iface_ip,
+                udp_server_ip,
+                upd_server_port,
+                b64_tunnel_private_key,
+                b64_client_public_key,
+            )?;
+        }
+        #[cfg(feature = "crypto")]
         Commands::Generate {} => {
-            let signing_key: SigningKey = SigningKey::generate(&mut OsRng);
-            let mut private_key = String::new();
-            B64_STANDARD.encode_string(signing_key.as_bytes(), &mut private_key);
-            let mut public_key = String::new();
-            B64_STANDARD.encode_string(signing_key.verifying_key().as_bytes(), &mut public_key);
+            let (private_key, public_key) = crypto::generate();
             eprintln!("Private key: {}", private_key);
             eprintln!("Public key: {}", public_key);
         }
@@ -86,4 +92,19 @@ fn main() -> std::io::Result<()> {
         Commands::Notify {} => notifications::send_notification(),
     }
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::Other, e.to_string().as_str())
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn new_io_err(msg: &str) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::Other, msg)
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::Other, format!("{}: {}", e.to_string(), msg))
 }

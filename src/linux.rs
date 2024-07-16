@@ -22,6 +22,7 @@ use libc::SIOCSIFNETMASK;
 use libc::{c_char, c_ulong, IFF_NO_PI, IFF_TUN, IFNAMSIZ, SIOCSIFFLAGS, SIOCSIFMTU};
 
 use crate::ioctl::ioctl;
+use crate::map_io_err_msg;
 use crate::tunnel;
 
 const TUNSETIFF: c_ulong = 1074025674;
@@ -171,8 +172,4 @@ fn wrap(ret: c_int) -> std::io::Result<c_int> {
     } else {
         Ok(ret)
     }
-}
-
-fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::Other, format!("{}: {}", e.to_string(), msg))
 }
