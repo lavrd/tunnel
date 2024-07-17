@@ -66,3 +66,11 @@ run_docker_client_crypto:
 		-e SERVER_DOCKER_IP=$(shell ./get_simple_tunnel_server_ip.sh) \
 		--entrypoint=./run_tun_docker.sh \
 		simple-tunnel
+
+run_benchmarks:
+	cd benchmarks && go run main.go run constant \
+		-c 100 \
+		--max-duration 60s \
+		--max-iterations 1000000 \
+		--rate 100/s \
+		tunnel

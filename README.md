@@ -166,3 +166,23 @@ After signing key creation you need to be able to build macOS bundle after Rust 
 To build you can use target from Makefile: `make build_macos_notifications`. It will be built, bundled and signed.
 
 Then, to execute binary, use following binary: `target/debug/bundle/osx/tunnel.app/Contents/MacOS/tunnel`.
+
+## Benchmarks
+
+Start client and server. On the client side use following command:
+
+```shell
+make run_benchmarks
+```
+
+### Results
+
+```shell
+# Without encryption.
+Successful Iterations: 5249 (87.48%, 86/second) avg: 333.555065ms, min: 133.410792ms, max: 998.457ms
+Failed Iterations: 751 (12.52%, 12) avg: 1.001063634s, min: 1.000016208s, max: 1.020293958s
+
+# With encryption.
+Successful Iterations: 5727 (95.45%, 95/second) avg: 334.908351ms, min: 160.32525ms, max: 990.791666ms
+Failed Iterations: 273 (4.55%, 5) avg: 1.00060279s, min: 1.000017584s, max: 1.002914167s
+```
