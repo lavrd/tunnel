@@ -66,10 +66,17 @@ pub(crate) fn parse_ipv4(ipv4: &str) -> std::io::Result<(Ipv4Addr, Ipv4Addr)> {
     if prefix > 32 {
         return Err(new_io_err("prefix is too big"));
     }
+    // Example:
+    // /24
+    // i = 0 -> 1 << (31 - 0) = 10000000 00000000 00000000 00000000
+    // i = 1 -> 1 << (31 - 1) = 01000000 00000000 00000000 00000000
+    // ...
+    // i = 23 -> 1 << (31 - 23) 00000000 00000000 00000001 00000000
     let mut netmask: u32 = 0;
     for i in 0..prefix {
         netmask |= 1 << (31 - i);
     }
+    // 11111111 11111111 11111111 00000000 = 255.255.255.0
     let netmask = Ipv4Addr::from(netmask);
     Ok((addr, netmask))
 }
