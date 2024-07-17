@@ -167,6 +167,8 @@ To build you can use target from Makefile: `make build_macos_notifications`. It 
 
 Then, to execute binary, use following binary: `target/debug/bundle/osx/tunnel.app/Contents/MacOS/tunnel`.
 
+Thanks to https://shadowfacts.net/2023/rust-swift/.
+
 ## Benchmarks
 
 Start client and server. On the client side use following command:
