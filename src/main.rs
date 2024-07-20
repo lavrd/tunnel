@@ -65,6 +65,7 @@ fn main() {}
 
 #[cfg(any(target_os = "linux", feature = "notifications", feature = "crypto"))]
 fn main() -> std::io::Result<()> {
+    env_logger::builder().init();
     let cli = Cli::parse();
     match cli.command {
         #[cfg(target_os = "linux")]

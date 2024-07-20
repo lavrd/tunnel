@@ -180,11 +180,22 @@ make run_benchmarks
 ### Results
 
 ```shell
-# Without encryption.
-Successful Iterations: 5249 (87.48%, 86/second) avg: 333.555065ms, min: 133.410792ms, max: 998.457ms
-Failed Iterations: 751 (12.52%, 12) avg: 1.001063634s, min: 1.000016208s, max: 1.020293958s
+# Without encryption and log level off.
+3000 iterations started in 2m0.157480369s (25/second)
+Successful Iterations: 2991 (99.70%, 25/second) avg: 151.476176ms, min: 93.345403ms, max: 318.205849ms
+Failed Iterations: 9 (0.30%, 0) avg: 1.000352524s, min: 1.000055246s, max: 1.000808141s
 
-# With encryption.
-Successful Iterations: 5727 (95.45%, 95/second) avg: 334.908351ms, min: 160.32525ms, max: 990.791666ms
-Failed Iterations: 273 (4.55%, 5) avg: 1.00060279s, min: 1.000017584s, max: 1.002914167s
+# Without encryption and log level trace.
+3000 iterations started in 2m0.036565398s (25/second)
+Successful Iterations: 2893 (96.43%, 24/second) avg: 150.551422ms, min: 91.653879ms, max: 414.595427ms
+Failed Iterations: 107 (3.57%, 1) avg: 1.000481824s, min: 1.000061448s, max: 1.001135531s
+
+# With encryption and log level off.
+3000 iterations started in 2m0.069374183s (25/second)
+Successful Iterations: 3000 (100.00%, 25/second) avg: 150.636617ms, min: 89.533821ms, max: 413.843386ms
+
+# With encryption and log level trace.
+3000 iterations started in 2m0.032534955s (25/second)
+Successful Iterations: 2972 (99.07%, 25/second) avg: 151.07044ms, min: 90.57113ms, max: 344.897276ms
+Failed Iterations: 28 (0.93%, 0) avg: 1.000543902s, min: 1.000069023s, max: 1.00110814s
 ```

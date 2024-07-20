@@ -1,11 +1,17 @@
 #[cfg(target_os = "macos")]
+use log::{error, info};
+
+#[cfg(not(target_os = "macos"))]
+use log::warn;
+
+#[cfg(target_os = "macos")]
 pub(crate) fn send_notification() {
     macos::send_notification()
 }
 
 #[cfg(not(target_os = "macos"))]
 pub(crate) fn send_notification() {
-    eprintln!("Notifications are working only on macOS right now")
+    warn!("Notifications are working only on macOS right now")
 }
 
 #[cfg(target_os = "macos")]
@@ -37,9 +43,9 @@ mod macos {
             )
         };
         match result {
-            0 => eprintln!("Notification successfully sent"),
-            101 => eprintln!("User didn't grant a notification access to our application"),
-            result => eprintln!("Unknown notification result: {result}"),
+            0 => info!("Notification successfully sent"),
+            101 => error!("User didn't grant a notification access to our application"),
+            result => error!("Unknown notification result: {result}"),
         }
     }
 }

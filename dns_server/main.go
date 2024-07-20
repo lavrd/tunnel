@@ -20,7 +20,6 @@ func main() {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		logger.Info("name requested to resolve", "name", name)
 		output, err := exec.Command("dig", "@1.1.1.1", "+trace", name).Output()
 		if err != nil {
 			logger.Error("failed to execute dig command", "error", err)

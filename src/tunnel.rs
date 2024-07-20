@@ -11,6 +11,8 @@ use std::{
     time::Duration,
 };
 
+use log::{debug, error, info};
+
 #[cfg(feature = "crypto")]
 use crate::crypto;
 use crate::{linux::Interface, map_io_err, new_io_err};
@@ -39,7 +41,7 @@ pub(crate) fn run_tunnel(
         .map_err(map_io_err)?;
     let client_addr = Arc::new(RwLock::new(client_addr));
 
-    eprintln!("Starting TUN device with '{}' name and '{}' IP", tun_iface_name, tun_iface_ip);
+    info!("Starting TUN device with '{}' name and '{}' IP", tun_iface_name, tun_iface_ip);
 
     let stop_signal: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     signal_hook::flag::register(signal_hook::consts::SIGTERM, stop_signal.clone())?;
@@ -182,7 +184,7 @@ fn run_process<P>(
     P: Process,
 {
     if let Err(e) = process.run(tun_td, udp_socket, client_addr, stop_signal.clone()) {
-        eprintln!("Failed to run process: {e}")
+        error!("Failed to run process: {e}")
     }
 }
 
@@ -201,14 +203,14 @@ impl Process for TunProcess {
     ) -> std::io::Result<()> {
         loop {
             if stop_signal.load(Ordering::Relaxed) {
-                eprintln!("Stop signal received for TUN process");
+                debug!("Stop signal received for TUN process");
                 return Ok(());
             }
             let mut buffer = [0; MTU];
             match tun_fd.read(&mut buffer) {
                 Ok(n) => {
                     let buffer = &buffer[..n];
-                    eprintln!("Received packet from TUN: {:?}", buffer);
+                    debug!("Received packet from TUN: {:?}", buffer);
                     #[cfg(feature = "crypto")]
                     let buffer = &self.cipher.encrypt(buffer)?;
                     udp_socket.send_to(buffer, *client_addr.read().map_err(map_io_err)?)?;
@@ -235,20 +237,20 @@ impl Process for RpcProcess {
     ) -> std::io::Result<()> {
         loop {
             if stop_signal.load(Ordering::Relaxed) {
-                eprintln!("Stop signal received for RPC process");
+                debug!("Stop signal received for RPC process");
                 return Ok(());
             }
             let mut buffer = [0; MTU];
             match udp_socket.recv_from(&mut buffer) {
                 Ok((n, addr)) => {
                     if client_addr.read().map_err(map_io_err)?.clone().ne(&addr) {
-                        eprintln!("Connected new client {addr}");
+                        info!("Connected new client {addr}");
                         *client_addr.write().map_err(map_io_err)? = addr;
                     }
                     let buffer = &buffer[..n];
                     #[cfg(feature = "crypto")]
                     let buffer = &self.cipher.decrypt(buffer, n)?;
-                    eprintln!("Received packet from RPC: {:?}", buffer);
+                    debug!("Received packet from RPC: {:?}", buffer);
                     let _ = tun_fd.write(buffer)?;
                 }
                 Err(ref e) if e.kind() == ErrorKind::WouldBlock => continue,
