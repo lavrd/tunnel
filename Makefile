@@ -28,9 +28,9 @@ run_docker_server:
 		--name simple-tunnel-server \
 		--cap-add=NET_ADMIN \
 		--device /dev/net/tun \
-		--memory=1g \
-		--memory-swap=1g \
-		--cpus=2 \
+		--memory=0.5g \
+		--memory-swap=0.5g \
+		--cpus=1 \
 		-e RUST_LOG=$(log_level) \
 		-e SERVER=1 \
 		--entrypoint="./run_tun_docker.sh" \
@@ -41,9 +41,9 @@ run_docker_server_crypto:
 		--name simple-tunnel-server \
 		--cap-add=NET_ADMIN \
 		--device /dev/net/tun \
-		--memory=1g \
-		--memory-swap=1g \
-		--cpus=2 \
+		--memory=0.5g \
+		--memory-swap=0.5g \
+		--cpus=1 \
 		-e RUST_LOG=$(log_level) \
 		-e TUNNEL_PRIVATE_KEY=RFLMRBysWs2qoDMM70xF87mPTrpTxLNTZwQwIWsIw8o= \
 		-e CLIENT_PUBLIC_KEY=O+0h1KDgpw6vxQY1GUFfHhyScNpjd7EuebQvUK5L8dM= \
@@ -56,9 +56,9 @@ run_docker_client:
 		--name simple-tunnel-client \
 		--cap-add=NET_ADMIN \
 		--device /dev/net/tun \
-		--memory=1g \
-		--memory-swap=1g \
-		--cpus=2 \
+		--memory=0.5g \
+		--memory-swap=0.5g \
+		--cpus=1 \
 		-p 8888:8888 \
 		-e RUST_LOG=$(log_level) \
 		-e CLIENT=1 \
@@ -71,9 +71,9 @@ run_docker_client_crypto:
 		--name simple-tunnel-client \
 		--cap-add=NET_ADMIN \
 		--device /dev/net/tun \
-		--memory=1g \
-		--memory-swap=1g \
-		--cpus=2 \
+		--memory=0.5g \
+		--memory-swap=0.5g \
+		--cpus=1 \
 		-p 8888:8888 \
 		-e RUST_LOG=$(log_level) \
 		-e TUNNEL_PRIVATE_KEY=6zZqJBS0o2/3pIRP6S659ZPr06RiAsCBKG15xHcb1OE= \
@@ -85,11 +85,11 @@ run_docker_client_crypto:
 
 run_benchmarks:
 	cd benchmarks && go run main.go run constant \
-		-c 25 \
-		--max-duration 120s \
-		--max-iterations 1000000 \
-		--rate 25/s \
-		tunnel
+		-c 50 \
+		--max-duration 60s \
+		--max-iterations 10000 \
+		--rate 50/s \
+		$(name)
 
 check_updates:
 	cargo outdated --color always -R
