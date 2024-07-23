@@ -1,6 +1,3 @@
-#[cfg(target_os = "macos")]
-use log::{error, info};
-
 #[cfg(not(target_os = "macos"))]
 use log::warn;
 
@@ -16,6 +13,8 @@ pub(crate) fn send_notification() {
 
 #[cfg(target_os = "macos")]
 mod macos {
+    use log::{error, info};
+
     const NOTIFICATION_IDENTIFIER: &str = include_str!("../identifier.txt");
     const NOTIFICATION_TITLE: &str = "Test";
     const NOTIFICATION_DESCRIPTION: &str = "Notification";
