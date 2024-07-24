@@ -188,14 +188,19 @@ make run_benchmarks name=tunnel_go
 --memory-swap=0.5g
 --cpus=1
 
+# Without tunnel at all.
+3000 iterations started in 59.991397625s (50/second)
+Successful Iterations: 3000 (100.00%, 50/second) avg: 4.786445ms, min: 2.46975ms, max: 23.011375ms
+
+# Without encryption and log level off and go method.
+3000 iterations started in 59.990738709s (50/second)
+Successful Iterations: 2999 (99.97%, 50/second) avg: 9.53962ms, min: 5.631583ms, max: 33.016083ms
+Failed Iterations: 1 (0.03%, 0) avg: 1.001422625s, min: 1.001422625s, max: 1.001422625s
+
 # Without encryption and log level off and dig method.
 3000 iterations started in 1m0.262219834s (50/second)
 Successful Iterations: 2998 (99.93%, 50/second) avg: 328.362513ms, min: 168.832208ms, max: 545.518791ms
 Failed Iterations: 2 (0.07%, 0) avg: 1.000546875s, min: 1.000459458s, max: 1.000634292s
-
-# Without encryption and log level off and go method.
-3000 iterations started in 59.991229792s (50/second)
-Successful Iterations: 3000 (100.00%, 50/second) avg: 4.69556ms, min: 2.381834ms, max: 27.743333ms
 
 ### Old try. ###
 
