@@ -7,16 +7,21 @@ if [ "$SERVER" == "1" ]; then
         ${TUNNEL_PRIVATE_KEY} ${CLIENT_PUBLIC_KEY} \
         --tun-iface-name tun0 --tun-iface-ip 10.0.0.2/24 &
 elif [ "$CLIENT" == "1" ]; then
+    # If user doesn't provide their own DNS server,
+    # just use default one.
+    if [ "$DNS_SERVER_IP" == "" ]; then
+      DNS_SERVER_IP="1.1.1.1"
+    fi
     # Change default nameserver to lookup DNS names.
-    echo nameserver 1.1.1.1 >/etc/resolv.conf
+    echo nameserver ${DNS_SERVER_IP} >/etc/resolv.conf
     ./tunnel run \
         ${TUNNEL_PRIVATE_KEY} ${CLIENT_PUBLIC_KEY} \
         --tun-iface-name tun1 --tun-iface-ip 10.0.0.3/24 \
         --udp-server-ip ${SERVER_DOCKER_IP} &
     # To wait until tun1 interface will be up and running.
     sleep 1
-    # Route all traffic to 1.1.1.1 to our system tunnel.
-    ip route add 1.1.1.1/32 dev tun1 &
+    # Route all traffic to ${DNS_SERVER_IP} to our system tunnel.
+    ip route add ${DNS_SERVER_IP}/32 dev tun1 &
     ./dns_server
 else
     echo "Not a client and not a server."

@@ -28,7 +28,7 @@ func main() {
 		var buf []byte
 		switch method {
 		case "dig":
-			output, err := exec.Command("dig", "@1.1.1.1", "+trace", name).Output()
+			output, err := exec.Command("dig", name).Output()
 			if err != nil {
 				logger.Error("failed to execute dig command", "error", err)
 				w.WriteHeader(http.StatusInternalServerError)

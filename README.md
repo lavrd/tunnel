@@ -102,20 +102,20 @@ After that you need to start tunnel server.
 
 ```shell
 # To run without encryption.
-make run_docker_server
+make run_docker_server log_level=off
 
 # To run with encryption capabilities.
-make run_docker_server_crypto
+make run_docker_server_crypto log_level=trace
 ```
 
 And finally you can start tunne client. To run this command [jq](https://github.com/jqlang/jq) is required to be installed.
 
 ```shell
 # To run without encryption.
-make run_docker_client
+make run_docker_client log_level=off
 
 # To run with encryption capabilities.
-make run_docker_server_client
+make run_docker_server_client log_level=trace
 ```
 
 Wait until client HTTP server will be started.
@@ -138,6 +138,16 @@ tcpdump -v -i tun0 proto \\icmp
 # Check any packets for particular IP.
 tcpdump -i enp1s0 dst 1.1.1.1 or src 1.1.1.1
 ```
+
+## Custom DNS server
+
+To use custom DNS server (clouddns, for example) you can run following command:
+
+```shell
+make run_dns_server
+```
+
+After that when you start docker containers for establish a tunnel it will find this server address automatically.
 
 ## macOS notifications
 
@@ -196,6 +206,10 @@ Successful Iterations: 3000 (100.00%, 50/second) avg: 4.786445ms, min: 2.46975ms
 3000 iterations started in 59.990738709s (50/second)
 Successful Iterations: 2999 (99.97%, 50/second) avg: 9.53962ms, min: 5.631583ms, max: 33.016083ms
 Failed Iterations: 1 (0.03%, 0) avg: 1.001422625s, min: 1.001422625s, max: 1.001422625s
+
+# Without encryption and log level off and go method with custom DNS server.
+3000 iterations started in 59.991265834s (50/second)
+Successful Iterations: 3000 (100.00%, 50/second) avg: 2.405449ms, min: 781.083µs, max: 22.444875ms
 
 # Without encryption and log level off and dig method.
 3000 iterations started in 1m0.262219834s (50/second)

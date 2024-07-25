@@ -23,6 +23,14 @@ build_macos_notifications:
 		--timestamp\=none --generate-entitlement-der \
 		target/debug/bundle/osx/tunnel.app
 
+run_dns_server:
+	docker run --rm -it \
+		--name dns-server \
+		-p 12400:53/udp \
+		-v "${PWD}/coredns/Corefile:/Corefile" \
+		-v "${PWD}/coredns/core.db:/core.db" \
+		coredns/coredns -conf /Corefile
+
 run_docker_server:
 	docker run --rm -it \
 		--name simple-tunnel-server \
@@ -63,6 +71,7 @@ run_docker_client:
 		-e RUST_LOG=$(log_level) \
 		-e CLIENT=1 \
 		-e SERVER_DOCKER_IP=$(shell ./get_simple_tunnel_server_ip.sh) \
+		-e DNS_SERVER_IP=$(shell ./get_dns_server_ip.sh) \
 		--entrypoint=./run_tun_docker.sh \
 		simple-tunnel
 
@@ -80,6 +89,7 @@ run_docker_client_crypto:
 		-e CLIENT_PUBLIC_KEY=bB438yE82JeVSg3GNuinl/Sbi7Da188qjoCflkpbG9w= \
 		-e CLIENT=1 \
 		-e SERVER_DOCKER_IP=$(shell ./get_simple_tunnel_server_ip.sh) \
+		-e DNS_SERVER_IP=$(shell ./get_dns_server_ip.sh) \
 		--entrypoint=./run_tun_docker.sh \
 		simple-tunnel
 

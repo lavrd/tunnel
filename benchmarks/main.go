@@ -52,5 +52,5 @@ func makeRequest(t *testing.T, endpoint string) {
 }
 
 func prepareEndpoint(method string) string {
-	return fmt.Sprintf("http://127.0.0.1:8888/resolve?name=cloudflare.com&method=%s", method)
+	return fmt.Sprintf("http://127.0.0.1:8888/resolve?name=tunnel.com&method=%s", method)
 }

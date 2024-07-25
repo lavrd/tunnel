@@ -1,0 +1,14 @@
+$TTL    3600
+$ORIGIN tunnel.com.
+@                    IN  SOA   ns.tunnel.com. contact.tunnel.com. (
+                                                2019121301 ; serial
+                                                1d ; refresh
+                                                2h ; retry
+                                                4w ; expire
+                                                1h ; nxdomain ttl
+                                              )
+                     IN  NS  ns.tunnel.com.
+@                    IN  A   192.168.1.10
+*                    IN  A   192.168.1.10
+@                    IN  A   10.10.100.10
+*                    IN  A   10.10.100.10

@@ -1,0 +1,12 @@
+tunnel.com:53 {
+  file /core.db
+  log
+  errors
+}
+
+.:53 {
+	log
+  errors
+  cache
+  forward . 1.1.1.1:53
+}
