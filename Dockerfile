@@ -1,4 +1,4 @@
-FROM rust:1.79-alpine3.20 AS build_tunnel
+FROM rust:1.80-alpine3.20 AS build_tunnel
 RUN apk add musl-dev
 WORKDIR /tunnel
 COPY Cargo.toml ./Cargo.toml

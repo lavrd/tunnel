@@ -190,55 +190,17 @@ make run_benchmarks name=tunnel_go
 
 ### Results
 
-```shell
-### New try. ###
+| Time | RPS | Memory | Swap | CPUs |
+|-|-|-|-|-|
+| 1m | 50rps | 0.5g | 0.5g | 1 |
 
-1m | 50rps
---memory=0.5g
---memory-swap=0.5g
---cpus=1
+|| Avg | Min | Max | Successful calls |
+|-|-|-|-|-|
+| Without tunnel and without local DNS [DQI] | 6.4ms | 762.33ns | 541ms | 3000 |
+| Without tunnel but with local DNS | 4.43ms | 1.00ms | 12.84ms | 3000 |
+| With tunnel but without local DNS [DQI] | 9.97ms | 5.55ms | 98.91ms | 3000 |
+| With tunnel and with local DNS | 2.32ms | 1.01ms | 5.80ms | 3000 |
+| With encrypted tunnel and with local DNS | 2.44ms | 867.25ns | 11.00ms | 3000 |
+| With tunnel and with local DNS (dig) | 57.77ms | 32.84ms | 136.72ms | 3000 |
 
-# Without tunnel at all.
-3000 iterations started in 59.991397625s (50/second)
-Successful Iterations: 3000 (100.00%, 50/second) avg: 4.786445ms, min: 2.46975ms, max: 23.011375ms
-
-# Without encryption and log level off and go method.
-3000 iterations started in 59.990738709s (50/second)
-Successful Iterations: 2999 (99.97%, 50/second) avg: 9.53962ms, min: 5.631583ms, max: 33.016083ms
-Failed Iterations: 1 (0.03%, 0) avg: 1.001422625s, min: 1.001422625s, max: 1.001422625s
-
-# Without encryption and log level off and go method with custom DNS server.
-3000 iterations started in 59.991265834s (50/second)
-Successful Iterations: 3000 (100.00%, 50/second) avg: 2.405449ms, min: 781.083µs, max: 22.444875ms
-
-# Without encryption and log level off and dig method.
-3000 iterations started in 1m0.262219834s (50/second)
-Successful Iterations: 2998 (99.93%, 50/second) avg: 328.362513ms, min: 168.832208ms, max: 545.518791ms
-Failed Iterations: 2 (0.07%, 0) avg: 1.000546875s, min: 1.000459458s, max: 1.000634292s
-
-### Old try. ###
-
-2m | 25rps
---memory=1g
---memory-swap=1g
---cpus=2
-
-# Without encryption and log level off and dig method.
-3000 iterations started in 2m0.157480369s (25/second)
-Successful Iterations: 2991 (99.70%, 25/second) avg: 151.476176ms, min: 93.345403ms, max: 318.205849ms
-Failed Iterations: 9 (0.30%, 0) avg: 1.000352524s, min: 1.000055246s, max: 1.000808141s
-
-# Without encryption and log level trace and dig method.
-3000 iterations started in 2m0.036565398s (25/second)
-Successful Iterations: 2893 (96.43%, 24/second) avg: 150.551422ms, min: 91.653879ms, max: 414.595427ms
-Failed Iterations: 107 (3.57%, 1) avg: 1.000481824s, min: 1.000061448s, max: 1.001135531s
-
-# With encryption and log level off and dig method.
-3000 iterations started in 2m0.069374183s (25/second)
-Successful Iterations: 3000 (100.00%, 25/second) avg: 150.636617ms, min: 89.533821ms, max: 413.843386ms
-
-# With encryption and log level trace and dig method.
-3000 iterations started in 2m0.032534955s (25/second)
-Successful Iterations: 2972 (99.07%, 25/second) avg: 151.07044ms, min: 90.57113ms, max: 344.897276ms
-Failed Iterations: 28 (0.93%, 0) avg: 1.000543902s, min: 1.000069023s, max: 1.00110814s
-```
+[DQI] means benchmark depends on the quality of the Internet (ping).

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -10,47 +11,67 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
+const Host = "tunnel.com"
+
 func main() {
 	f1 := f1.New()
-	f1.Add("tunnel_dig", runTunnelDig)
-	f1.Add("tunnel_go", runTunnelGo)
+	f1.Add("tunnel_dig", RunTunnelDig)
+	f1.Add("tunnel_go", RunTunnelGo)
+	f1.Add("lookup_go", RunLookupGo)
+	f1.Add("lookup_local_go", RunLookupLocalGo)
 	f1.Execute()
 }
 
-func runTunnelDig(t *testing.T) testing.RunFn {
-	endpoint := prepareEndpoint("dig")
+func RunTunnelDig(t *testing.T) testing.RunFn {
+	endpoint := PrepareEndpoint("dig")
 	return func(t *testing.T) {
-		makeRequest(t, endpoint)
+		MakeRequest(t, endpoint)
 	}
 }
 
-func runTunnelGo(t *testing.T) testing.RunFn {
-	endpoint := prepareEndpoint("go")
+func RunTunnelGo(t *testing.T) testing.RunFn {
+	endpoint := PrepareEndpoint("go")
 	return func(t *testing.T) {
-		makeRequest(t, endpoint)
+		MakeRequest(t, endpoint)
 	}
 }
 
-func makeRequest(t *testing.T, endpoint string) {
+func RunLookupGo(t *testing.T) testing.RunFn {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_, err := net.DefaultResolver.LookupHost(ctx, Host)
+		t.Require().NoError(err)
+	}
+}
+
+func RunLookupLocalGo(t *testing.T) testing.RunFn {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		resolver := &net.Resolver{
+			PreferGo:     true,
+			StrictErrors: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				return net.Dial("udp", "127.0.0.1:12400")
+			},
+		}
+		_, err := resolver.LookupHost(ctx, Host)
+		t.Require().NoError(err)
+	}
+}
+
+func MakeRequest(t *testing.T, endpoint string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
-	if err != nil {
-		t.FailNow()
-		return
-	}
+	t.Require().NoError(err)
 	res, err := (&http.Client{}).Do(req)
-	if err != nil {
-		t.FailNow()
-		return
-	}
+	t.Require().NoError(err)
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		t.FailNow()
-		return
-	}
+	t.Require().Equal(http.StatusOK, res.StatusCode)
 }
 
-func prepareEndpoint(method string) string {
+func PrepareEndpoint(method string) string {
 	return fmt.Sprintf("http://127.0.0.1:8888/resolve?name=tunnel.com&method=%s", method)
 }
