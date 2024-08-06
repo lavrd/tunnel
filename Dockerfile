@@ -24,5 +24,5 @@ FROM alpine:3.20
 RUN apk add iproute2 bind-tools iptables
 COPY --from=build_tunnel /tunnel/target/release/tunnel /tunnel
 COPY --from=build_dns_server /dns_server/dns_server /dns_server
-COPY run_tun_docker.sh /run_tun_docker.sh
+COPY scripts/run_tun_docker.sh /run_tun_docker.sh
 ENTRYPOINT []
