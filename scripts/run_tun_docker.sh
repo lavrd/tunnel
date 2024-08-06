@@ -25,8 +25,8 @@ elif [ "$CLIENT" == "1" ]; then
     sleep 1
     # Route all traffic to ${DNS_SERVER_IP} to our system tunnel.
     ip route add ${DNS_SERVER_IP}/32 dev tun1 &
-    # Start dns server.
-    ./dns_server
+    # Start DNS HTTP proxy.
+    ./dns_http_proxy
 else
     echo "Not a client and not a server."
     exit 1

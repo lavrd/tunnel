@@ -120,7 +120,7 @@ make run_docker_server_client log_level=trace
 
 Wait until client HTTP server will be started.
 
-To test that tunnel is working you can request HTTP server to resolve some DNS name.
+To test that tunnel is working you can request DNS HTTP proxy server to resolve some DNS name.
 
 ```shell
 curl -iX GET 'http://127.0.0.1:8888/resolve?name=cloudflare.com'
