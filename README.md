@@ -194,14 +194,14 @@ make run_benchmarks name=tunnel_go
 |-|-|-|-|-|
 | 1m | 50rps | 0.5g | 0.5g | 1 |
 
-|| Avg | Min | Max | Successful calls |
-|-|-|-|-|-|
-| Without tunnel and without local DNS **[DQI]** | 6.4ms | 762.33ns | 541ms | 3000 |
-| Without tunnel but with local DNS | 4.43ms | 1.00ms | 12.84ms | 3000 |
-| With tunnel but without local DNS **[DQI]** | 9.97ms | 5.55ms | 98.91ms | 3000 |
-| With tunnel and with local DNS | 2.32ms | 1.01ms | 5.80ms | 3000 |
-| With encrypted tunnel and with local DNS | 2.44ms | 867.25ns | 11.00ms | 3000 |
-| With tunnel and with local DNS **_(dig)_** | 57.77ms | 32.84ms | 136.72ms | 3000 |
+|| Avg | Min | Max |
+|-|-|-|-|
+| Without tunnel and without local DNS **[DQI]** | 6.4ms | 762.33ns | 541ms |
+| Without tunnel but with local DNS | 4.43ms | 1.00ms | 12.84ms |
+| With tunnel but without local DNS **[DQI]** | 9.97ms | 5.55ms | 98.91ms |
+| With tunnel and with local DNS | 2.32ms | 1.01ms | 5.80ms |
+| With encrypted tunnel and with local DNS | 2.44ms | 867.25ns | 11.00ms |
+| With tunnel and with local DNS **_(dig)_** | 57.77ms | 32.84ms | 136.72ms |
 
 **[DQI]** means benchmark depends on the quality of the Internet (ping). \
 **_(dig)_** means `dig` command was used by DNS HTTP proxy server to reach DNS server.
