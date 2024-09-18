@@ -25,14 +25,14 @@ enum Commands {
     #[cfg(target_os = "linux")]
     /// Run tunnel.
     Run {
-        /// Set tunnel system network interface name.
+        /// Set tunnel system network device name.
         #[arg(long)]
         #[arg(default_value = "tun0")]
-        tun_iface_name: String,
-        /// Set tunnel system network interface IP address.
+        tun_device_name: String,
+        /// Set tunnel system network device IP address.
         #[arg(long)]
         #[arg(default_value = "10.0.0.1/24")]
-        tun_iface_ip: String,
+        tun_device_ip: String,
         /// UDP server IP address.
         #[arg(long)]
         #[arg(default_value = "0.0.0.0")]
@@ -70,8 +70,8 @@ fn main() -> std::io::Result<()> {
     match cli.command {
         #[cfg(target_os = "linux")]
         Commands::Run {
-            tun_iface_name,
-            tun_iface_ip,
+            tun_device_name,
+            tun_device_ip,
             udp_server_ip,
             upd_server_port,
             #[cfg(feature = "crypto")]
@@ -80,11 +80,11 @@ fn main() -> std::io::Result<()> {
                 client_public_key: b64_client_public_key,
         } => {
             #[cfg(not(feature = "crypto"))]
-            tunnel::run_tunnel(tun_iface_name, tun_iface_ip, udp_server_ip, upd_server_port)?;
+            tunnel::run_tunnel(tun_device_name, tun_device_ip, udp_server_ip, upd_server_port)?;
             #[cfg(feature = "crypto")]
             tunnel::run_tunnel(
-                tun_iface_name,
-                tun_iface_ip,
+                tun_device_name,
+                tun_device_ip,
                 udp_server_ip,
                 upd_server_port,
                 b64_tunnel_private_key,

@@ -96,11 +96,11 @@ impl IfReqFlags {
     }
 }
 
-pub(crate) struct Interface {
+pub(crate) struct Device {
     tun_fd: File,
 }
 
-impl Interface {
+impl Device {
     pub(crate) fn new(
         mut name: String,
         ip: String,
@@ -123,7 +123,7 @@ impl Interface {
         let ip_fd = udp_socket.as_raw_fd();
         let mut if_req_addr = IfReqAddr::new(&name, addr);
         ioctl(&ip_fd, SIOCSIFADDR, &mut if_req_addr)
-            .map_err(|e| map_io_err_msg(e, "failed to set interface address"))?;
+            .map_err(|e| map_io_err_msg(e, "failed to set device address"))?;
         let mut if_req_dst = IfReqAddr::new(&name, addr);
         ioctl(&ip_fd, SIOCSIFDSTADDR, &mut if_req_dst)
             .map_err(|e| map_io_err_msg(e, "failed to set destination address"))?;
@@ -135,7 +135,7 @@ impl Interface {
             .map_err(|e| map_io_err_msg(e, "failed to set mtu"))?;
         let mut if_req_flags = IfReqFlags::new(&name);
         ioctl(&ip_fd, SIOCSIFFLAGS, &mut if_req_flags)
-            .map_err(|e| map_io_err_msg(e, "failed to set network interface flags"))?;
+            .map_err(|e| map_io_err_msg(e, "failed to set network device flags"))?;
 
         Ok(Self { tun_fd })
     }

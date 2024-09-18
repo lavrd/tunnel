@@ -15,7 +15,7 @@ use log::{debug, error, info};
 
 #[cfg(feature = "crypto")]
 use crate::crypto;
-use crate::{linux::Interface, map_io_err, new_io_err};
+use crate::{linux::Device, map_io_err, new_io_err};
 
 const MTU: usize = 1500;
 
@@ -30,8 +30,8 @@ trait Process {
 }
 
 pub(crate) fn run_tunnel(
-    tun_iface_name: String,
-    tun_iface_ip: String,
+    tun_device_name: String,
+    tun_device_ip: String,
     udp_server_ip: String,
     upd_server_port: u16,
     #[cfg(feature = "crypto")] b64_tunnel_private_key: String,
@@ -41,7 +41,7 @@ pub(crate) fn run_tunnel(
         .map_err(map_io_err)?;
     let client_addr = Arc::new(RwLock::new(client_addr));
 
-    info!("Starting TUN device with '{}' name and '{}' IP", tun_iface_name, tun_iface_ip);
+    info!("Starting TUN device with '{}' name and '{}' IP", tun_device_name, tun_device_ip);
 
     let stop_signal: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     signal_hook::flag::register(signal_hook::consts::SIGTERM, stop_signal.clone())?;
@@ -50,8 +50,8 @@ pub(crate) fn run_tunnel(
 
     init_tunnel(
         client_addr,
-        tun_iface_name,
-        tun_iface_ip,
+        tun_device_name,
+        tun_device_ip,
         upd_server_port,
         #[cfg(feature = "crypto")]
         b64_tunnel_private_key,
@@ -97,8 +97,8 @@ impl Tunnel {
         client_addr: Arc<RwLock<SocketAddr>>,
         stop_signal: Arc<AtomicBool>,
     ) -> std::io::Result<()> {
-        let iface = Interface::new(name, ip, MTU)?;
-        let tun_fd = iface.into_tun_fd();
+        let device = Device::new(name, ip, MTU)?;
+        let tun_fd = device.into_tun_fd();
 
         let udp_socket = UdpSocket::bind(format!("0.0.0.0:{udp_server_port}"))?;
         udp_socket.set_write_timeout(Some(Duration::from_millis(500)))?;
@@ -149,8 +149,8 @@ impl Tunnel {
 #[cfg(feature = "crypto")]
 fn init_tunnel(
     client_addr: Arc<RwLock<SocketAddr>>,
-    tun_iface_name: String,
-    tun_iface_ip: String,
+    tun_device_name: String,
+    tun_device_ip: String,
     upd_server_port: u16,
     #[cfg(feature = "crypto")] b64_tunnel_private_key: String,
     #[cfg(feature = "crypto")] b64_client_public_key: String,
@@ -160,18 +160,24 @@ fn init_tunnel(
     Tunnel {
         cipher: Arc::new(cipher),
     }
-    .start_tunnel(tun_iface_name, tun_iface_ip, upd_server_port, client_addr, stop_signal)
+    .start_tunnel(tun_device_name, tun_device_ip, upd_server_port, client_addr, stop_signal)
 }
 
 #[cfg(not(feature = "crypto"))]
 fn init_tunnel(
     client_addr: Arc<RwLock<SocketAddr>>,
-    tun_iface_name: String,
-    tun_iface_ip: String,
+    tun_device_name: String,
+    tun_device_ip: String,
     upd_server_port: u16,
     stop_signal: Arc<AtomicBool>,
 ) -> std::io::Result<()> {
-    Tunnel {}.start_tunnel(tun_iface_name, tun_iface_ip, upd_server_port, client_addr, stop_signal)
+    Tunnel {}.start_tunnel(
+        tun_device_name,
+        tun_device_ip,
+        upd_server_port,
+        client_addr,
+        stop_signal,
+    )
 }
 
 fn run_process<P>(

@@ -8,7 +8,7 @@ if [ "$SERVER" == "1" ]; then
     iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
     ./tunnel run \
         ${TUNNEL_PRIVATE_KEY} ${CLIENT_PUBLIC_KEY} \
-        --tun-iface-name tun0 --tun-iface-ip 10.0.0.2/24 &
+        --tun-device-name tun0 --tun-device-ip 10.0.0.2/24 &
 elif [ "$CLIENT" == "1" ]; then
     # If user doesn't provide their own DNS server,
     # just use default one.
@@ -19,9 +19,9 @@ elif [ "$CLIENT" == "1" ]; then
     echo nameserver ${DNS_SERVER_IP} >/etc/resolv.conf
     ./tunnel run \
         ${TUNNEL_PRIVATE_KEY} ${CLIENT_PUBLIC_KEY} \
-        --tun-iface-name tun1 --tun-iface-ip 10.0.0.3/24 \
+        --tun-device-name tun1 --tun-device-ip 10.0.0.3/24 \
         --udp-server-ip ${SERVER_DOCKER_IP} &
-    # To wait until tun1 interface will be up and running.
+    # To wait until tun1 device will be up and running.
     sleep 1
     # Route all traffic to ${DNS_SERVER_IP} to our system tunnel.
     ip route add ${DNS_SERVER_IP}/32 dev tun1 &

@@ -1,6 +1,6 @@
 # Tunnel
 
-Simple network tunnel (and how to work with Linux TUN interface) as an example.
+Simple network tunnel (and how to work with Linux TUN device) as an example.
 
 _Tunnel is working on only on Linux or inside Docker containers._
 
@@ -51,7 +51,7 @@ After that you can run tunnel server.
 cargo build && \
   sudo target/debug/tunnel run \
   <server_private_key> <client_public_key> \
-  --tun-iface-ip 10.0.0.2/24
+  --tun-device-ip 10.0.0.2/24
 ```
 
 #### Client
@@ -61,14 +61,14 @@ cargo build && \
 cargo build && \
   sudo target/debug/tunnel run \
   <client_private_key> <server_public_key> \
-  --tun-iface-ip 10.0.0.3/24 --udp-server-ip <tunnel_server_public_ip>
+  --tun-device-ip 10.0.0.3/24 --udp-server-ip <tunnel_server_public_ip>
 # Route all traffic to 1.1.1.1 through client tunnel interface.
 sudo ip route add 1.1.1.1/32 dev tun0
 ```
 
 To check that tunnel is setup correctly you can use `ping` command: `ping 1.1.1.1 -c 1`.
 
-It is very crucial to setup different IPs for client and server TUN interfaces, others packets not going correctly through tunnel.
+It is very crucial to setup different IPs for client and server TUN devices, others packets not going correctly through tunnel.
 
 #### Example
 
@@ -77,13 +77,13 @@ It is very crucial to setup different IPs for client and server TUN interfaces, 
 cargo build && \
   sudo target/debug/tunnel run \
   nE84pUNAM0LsWx+tjJLElU9vEEi1fm5UxucRyTfTrok= /i4WwxYB7KPoFNFCiIR67KpROr6f8Y6Ht56Z2LXZOLE= \
-  --tun-iface-ip 10.0.0.2/24
+  --tun-device-ip 10.0.0.2/24
 
 # Client.
 cargo build && \
   sudo target/debug/tunnel run \
   7y6VlMKnBWxFoCc06E2BCEaBTk9rKu8MQOwsjGcmHdw= ioABH93leNl4oiHy9k8O5NVPM7W8TEwgj9IGtycZUKM= \
-  --tun-iface-ip 10.0.0.3/24 --udp-server-ip 127.0.0.1
+  --tun-device-ip 10.0.0.3/24 --udp-server-ip 127.0.0.1
 ```
 
 ### Run in Docker
