@@ -29,11 +29,12 @@ use libc::SIOCSIFDSTADDR;
 use libc::SIOCSIFFLAGS;
 use libc::SIOCSIFMTU;
 use libc::SIOCSIFNETMASK;
+use log::warn;
 
 use crate::map_io_err_msg;
 use crate::tunnel;
 
-// I got this value from:
+// We got this value from:
 // https://cs.opensource.google/go/go/+/refs/tags/go1.23.1:src/syscall/zerrors_linux_amd64.go;l=1161
 // Value from file below is 0x400454ca, but it is in hex, after converting it to dec it is: 1074025674.
 // Alternative way to use it, it is use nix crate:
@@ -149,6 +150,8 @@ impl Device {
         if_req.flags = (IFF_TUN | IFF_NO_PI) as u16;
         ioctl(&tun_fd, TUNSETIFF, &mut if_req)
             .map_err(|e| map_io_err_msg(e, "failed to create tun device"))?;
+        // We are not sure that it can work with ipv6, so let's disable it by default.
+        unsafe { disable_ipv6(&name)? };
 
         /*
             Following code is the same as: ip addr add 10.0.0.1/24 dev tun0
@@ -215,6 +218,33 @@ fn ioctl<T>(fd: &impl AsRawFd, request: c_ulong, arg: &mut T) -> std::io::Result
     #[cfg(not(target_env = "musl"))]
     let res = unsafe { libc::ioctl(fd.as_raw_fd(), request, arg) };
     if res < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+unsafe fn disable_ipv6(iface_name: &CString) -> std::io::Result<()> {
+    let fd = libc::open(
+        format!("/proc/sys/net/ipv6/conf/{}/disable_ipv6", iface_name.to_string_lossy())
+            .as_str()
+            .as_ptr() as *const _,
+        O_RDWR,
+    );
+    if fd < 0 {
+        let last_os_error = std::io::Error::last_os_error();
+        match last_os_error.raw_os_error() {
+            // 30 means Read-only file system error.
+            Some(30) => {
+                warn!("failed to open fd to disable ipv6: {}", last_os_error);
+                return Ok(());
+            }
+            _ => return Err(last_os_error),
+        }
+    }
+    if libc::write(fd, b"1".as_ptr() as *const _, 1) < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    if libc::close(fd) < 0 {
         return Err(std::io::Error::last_os_error());
     }
     Ok(())

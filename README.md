@@ -101,10 +101,10 @@ make build_docker_crypto
 After that you need to start tunnel server.
 
 ```shell
-# To run without encryption.
+# To run without encryption and with disabled logs.
 make run_docker_server log_level=off
 
-# To run with encryption capabilities.
+# To run with encryption capabilities and log level is trace.
 make run_docker_server_crypto log_level=trace
 ```
 
