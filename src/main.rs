@@ -3,8 +3,6 @@ use clap::{command, Parser, Subcommand};
 #[cfg(feature = "crypto")]
 mod crypto;
 #[cfg(target_os = "linux")]
-mod ioctl;
-#[cfg(target_os = "linux")]
 mod linux;
 #[cfg(feature = "notifications")]
 mod notifications;
