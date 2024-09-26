@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -28,7 +29,11 @@ func main() {
 		var buf []byte
 		switch method {
 		case "dig":
-			output, err := exec.Command("dig", name).Output()
+			server := query.Get("server")
+			if server == "" {
+				server = "1.1.1.1"
+			}
+			output, err := exec.Command("dig", fmt.Sprintf("@%s", server), name).Output()
 			if err != nil {
 				logger.Error("failed to execute dig command", "error", err)
 				w.WriteHeader(http.StatusInternalServerError)

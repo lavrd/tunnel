@@ -123,10 +123,26 @@ Wait until client HTTP server will be started.
 To test that tunnel is working you can request DNS HTTP proxy server to resolve some DNS name.
 
 ```shell
-curl -iX GET 'http://127.0.0.1:8888/resolve?name=cloudflare.com'
+curl -iX GET 'http://127.0.0.1:8888/resolve?name=cloudflare.com&method=go'
+
+curl -iX GET 'http://127.0.0.1:8888/resolve?name=cloudflare.com&method=dig&server=1.1.1.1'
 ```
 
+`server` query param is not nessery. It is only used in case of `dig` method to specify target DNS server. By default we are using `1.1.1.1`.
+
 You can see in the client and server tunnels logs that packets were going through them before reached `1.1.1.1` DNS server.
+
+### Routing through tunnel
+
+Client side supports two types of routing:
+- `single` - single means only network packets to target dns server will go through tunnel
+- `full` - full means all requests will go through tunnel
+
+```shell
+make run_docker_client log_level=trace routing=full
+```
+
+`single` is used by default.
 
 ### Troubleshooting
 

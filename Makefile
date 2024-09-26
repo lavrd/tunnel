@@ -72,6 +72,7 @@ run_docker_client:
 		-e CLIENT=1 \
 		-e SERVER_DOCKER_IP=$(shell ./scripts/get_simple_tunnel_server_ip.sh) \
 		-e DNS_SERVER_IP=$(shell ./scripts/get_dns_server_ip.sh) \
+		-e ROUTING=$(routing) \
 		--entrypoint="./run_tun_docker.sh" \
 		simple-tunnel
 
@@ -90,6 +91,7 @@ run_docker_client_crypto:
 		-e CLIENT=1 \
 		-e SERVER_DOCKER_IP=$(shell ./acripts/get_simple_tunnel_server_ip.sh) \
 		-e DNS_SERVER_IP=$(shell ./scripts/get_dns_server_ip.sh) \
+		-e ROUTING=$(routing) \
 		--entrypoint="./run_tun_docker.sh" \
 		simple-tunnel
 

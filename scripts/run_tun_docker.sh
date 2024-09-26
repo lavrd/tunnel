@@ -23,8 +23,27 @@ elif [ "$CLIENT" == "1" ]; then
         --udp-server-ip ${SERVER_DOCKER_IP} &
     # To wait until tun1 device will be up and running.
     sleep 1
-    # Route all traffic to ${DNS_SERVER_IP} to our system tunnel.
-    ip route add ${DNS_SERVER_IP}/32 dev tun1 &
+    if [ "$DNS_SERVER_IP" == "" ]; then
+        DNS_SERVER_IP="1.1.1.1"
+    fi
+    case "$ROUTING" in
+    single)
+        # Route all traffic to ${DNS_SERVER_IP} to our system tunnel.
+        ip route add ${DNS_SERVER_IP}/32 dev tun1
+        ;;
+    full)
+        ip route del default
+        ip route add default dev tun1
+        # For some reasons local addresses is not go through tunnel
+        # in case of default gateway was set up through tun device.
+        # Route all traffic to ${DNS_SERVER_IP} to our system tunnel.
+        ip route add ${DNS_SERVER_IP}/32 dev tun1
+        ;;
+    *)
+        # Route all traffic to ${DNS_SERVER_IP} to our system tunnel.
+        ip route add ${DNS_SERVER_IP}/32 dev tun1
+        ;;
+    esac
     # Start DNS HTTP proxy.
     ./dns_http_proxy
 else
