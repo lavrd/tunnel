@@ -33,6 +33,7 @@ func main() {
 			if server == "" {
 				server = "1.1.1.1"
 			}
+			//nolint:gosec // it is okay for testing
 			output, err := exec.Command("dig", fmt.Sprintf("@%s", server), name).Output()
 			if err != nil {
 				logger.Error("failed to execute dig command", "error", err)
