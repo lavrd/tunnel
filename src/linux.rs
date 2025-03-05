@@ -151,7 +151,7 @@ impl Device {
         ioctl(&tun_fd, TUNSETIFF, &mut if_req)
             .map_err(|e| map_io_err_msg(e, "failed to create tun device"))?;
         // We are not sure that it can work with ipv6, so let's disable it by default.
-        unsafe { disable_ipv6(&name)? };
+        disable_ipv6(&name)?;
 
         /*
             Following code is the same as: ip addr add 10.0.0.1/24 dev tun0
@@ -223,13 +223,15 @@ fn ioctl<T>(fd: &impl AsRawFd, request: c_ulong, arg: &mut T) -> std::io::Result
     Ok(())
 }
 
-unsafe fn disable_ipv6(iface_name: &CString) -> std::io::Result<()> {
-    let fd = libc::open(
-        format!("/proc/sys/net/ipv6/conf/{}/disable_ipv6", iface_name.to_string_lossy())
-            .as_str()
-            .as_ptr() as *const _,
-        O_RDWR,
-    );
+fn disable_ipv6(iface_name: &CString) -> std::io::Result<()> {
+    let fd = unsafe {
+        libc::open(
+            format!("/proc/sys/net/ipv6/conf/{}/disable_ipv6", iface_name.to_string_lossy())
+                .as_str()
+                .as_ptr() as *const _,
+            O_RDWR,
+        )
+    };
     if fd < 0 {
         let last_os_error = std::io::Error::last_os_error();
         match last_os_error.raw_os_error() {
@@ -241,10 +243,10 @@ unsafe fn disable_ipv6(iface_name: &CString) -> std::io::Result<()> {
             _ => return Err(last_os_error),
         }
     }
-    if libc::write(fd, b"1".as_ptr() as *const _, 1) < 0 {
+    if unsafe { libc::write(fd, b"1".as_ptr() as *const _, 1) } < 0 {
         return Err(std::io::Error::last_os_error());
     }
-    if libc::close(fd) < 0 {
+    if unsafe { libc::close(fd) } < 0 {
         return Err(std::io::Error::last_os_error());
     }
     Ok(())
