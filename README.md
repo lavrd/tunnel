@@ -24,6 +24,8 @@ Use `ifconfig` to find an proper interface which has an access to the global net
 sudo iptables -t nat -A POSTROUTING -o enp1s0 -j MASQUERADE
 ```
 
+Why? - client has private ip address and with this command we replace it with public ip address before forwarding the traffic, so client has an access to the public network through server.
+
 To check that command was successfully executed you can use following command and find your rule.
 
 ```shell

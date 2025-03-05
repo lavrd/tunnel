@@ -91,7 +91,7 @@ run_docker_client_crypto:
 		-e TUNNEL_PRIVATE_KEY=6zZqJBS0o2/3pIRP6S659ZPr06RiAsCBKG15xHcb1OE= \
 		-e CLIENT_PUBLIC_KEY=bB438yE82JeVSg3GNuinl/Sbi7Da188qjoCflkpbG9w= \
 		-e CLIENT=1 \
-		-e SERVER_DOCKER_IP=$(shell ./acripts/get_simple_tunnel_server_ip.sh) \
+		-e SERVER_DOCKER_IP=$(shell ./scripts/get_simple_tunnel_server_ip.sh) \
 		-e DNS_SERVER_IP=$(shell ./scripts/get_dns_server_ip.sh) \
 		-e ROUTING=$(routing) \
 		--entrypoint="./run_tun_docker.sh" \
