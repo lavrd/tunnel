@@ -85,7 +85,7 @@ pub(crate) fn parse_ipv4(ipv4: &str) -> std::io::Result<(Ipv4Addr, Ipv4Addr)> {
 
 struct Tunnel {
     #[cfg(feature = "crypto")]
-    cipher: Arc<crypto::Cipher>,
+    cipher: Arc<crypto::cipher::Cipher>,
 }
 
 impl Tunnel {
@@ -156,7 +156,7 @@ fn init_tunnel(
     #[cfg(feature = "crypto")] b64_client_public_key: String,
     stop_signal: Arc<AtomicBool>,
 ) -> std::io::Result<()> {
-    let cipher = crypto::init_cipher(b64_tunnel_private_key, b64_client_public_key)?;
+    let cipher = crypto::cipher::init_cipher(b64_tunnel_private_key, b64_client_public_key)?;
     Tunnel {
         cipher: Arc::new(cipher),
     }
@@ -196,7 +196,7 @@ fn run_process<P>(
 
 struct TunProcess {
     #[cfg(feature = "crypto")]
-    cipher: Arc<crypto::Cipher>,
+    cipher: Arc<crypto::cipher::Cipher>,
 }
 
 impl Process for TunProcess {
@@ -230,7 +230,7 @@ impl Process for TunProcess {
 
 struct RpcProcess {
     #[cfg(feature = "crypto")]
-    cipher: Arc<crypto::Cipher>,
+    cipher: Arc<crypto::cipher::Cipher>,
 }
 
 impl Process for RpcProcess {
