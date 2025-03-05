@@ -17,6 +17,7 @@ use libc::IFF_TUN;
 use libc::IFF_UP;
 use libc::IFNAMSIZ;
 use libc::O_NONBLOCK;
+use libc::O_RDONLY;
 use libc::O_RDWR;
 use libc::SIOCSIFADDR;
 use libc::SIOCSIFDSTADDR;
@@ -29,8 +30,10 @@ use libc::c_ulong;
 use libc::c_void;
 use libc::in_addr;
 use libc::sockaddr_in;
+use log::debug;
 use log::warn;
 
+use crate::map_io_err;
 use crate::map_io_err_msg;
 use crate::tunnel;
 
@@ -224,12 +227,60 @@ fn ioctl<T>(fd: &impl AsRawFd, request: c_ulong, arg: &mut T) -> std::io::Result
 }
 
 fn disable_ipv6(iface_name: &CString) -> std::io::Result<()> {
+    if !is_ipv6_enabled(iface_name)? {
+        debug!("ipv6 protocol was disabled for interface");
+        return Ok(());
+    }
+    debug!("ipv6 protocol is active for interface");
+    let fd = match open_ipv6_fd(iface_name, O_RDWR)? {
+        Some(fd) => fd,
+        None => return Ok(()), // we can't disable ipv6 if we cannot open it
+    };
+    if unsafe { libc::write(fd, b"1".as_ptr() as *const _, 1) } < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    if unsafe { libc::close(fd) } < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    if !is_ipv6_enabled(iface_name)? {
+        debug!("ipv6 protocol is disabled for interface");
+        return Ok(());
+    }
+    debug!("ipv6 protocol is still active for interface");
+    Ok(())
+}
+
+fn is_ipv6_enabled(iface_name: &CString) -> std::io::Result<bool> {
+    let fd = match open_ipv6_fd(iface_name, O_RDONLY)? {
+        Some(fd) => fd,
+        None => return Ok(false), // we cannot check that ipv6 is enabled if we cannot open it
+    };
+    let mut buf = [0u8; 2];
+    let n = unsafe { libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, buf.len()) };
+    if n < 0 {
+        return Err(map_io_err_msg(std::io::Error::last_os_error(), "failed to read from ipv6 fd"));
+    }
+    if unsafe { libc::close(fd) } < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    if let Some(flag) = (buf[0] as char).to_digit(10) {
+        match flag {
+            0 => return Ok(true),  // enabled
+            1 => return Ok(false), // disabled
+            k => return Err(map_io_err(format!("unknown value after read from ipv6 fd: {}", k))),
+        }
+    }
+    // Cannot check as cannot convert read value.
+    Ok(false)
+}
+
+fn open_ipv6_fd(iface_name: &CString, oflag: c_int) -> std::io::Result<Option<i32>> {
     let fd = unsafe {
         libc::open(
             format!("/proc/sys/net/ipv6/conf/{}/disable_ipv6", iface_name.to_string_lossy())
                 .as_str()
                 .as_ptr() as *const _,
-            O_RDWR,
+            oflag,
         )
     };
     if fd < 0 {
@@ -237,17 +288,21 @@ fn disable_ipv6(iface_name: &CString) -> std::io::Result<()> {
         match last_os_error.raw_os_error() {
             // 30 means Read-only file system error.
             Some(30) => {
-                warn!("failed to open fd to disable ipv6: {}", last_os_error);
-                return Ok(());
+                warn!("failed to open ipv6 fd: file system is read-only: {}", last_os_error);
+                return Ok(None);
             }
-            _ => return Err(last_os_error),
+            Some(2) => {
+                warn!("failed to open ipv6 fd: file is not exists: {}", last_os_error);
+                return Ok(None);
+            }
+            Some(n) => {
+                return Err(map_io_err_msg(
+                    last_os_error,
+                    &format!("failed to open ipv6 fd: unknown os error: {n}"),
+                ));
+            }
+            _ => return Err(map_io_err_msg(last_os_error, "failed to open ipv6 fd")),
         }
     }
-    if unsafe { libc::write(fd, b"1".as_ptr() as *const _, 1) } < 0 {
-        return Err(std::io::Error::last_os_error());
-    }
-    if unsafe { libc::close(fd) } < 0 {
-        return Err(std::io::Error::last_os_error());
-    }
-    Ok(())
+    Ok(Some(fd))
 }

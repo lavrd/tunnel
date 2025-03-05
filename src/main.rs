@@ -107,11 +107,6 @@ pub(crate) fn map_io_err<T: ToString>(e: T) -> std::io::Error {
 }
 
 #[cfg(target_os = "linux")]
-pub(crate) fn new_io_err(msg: &str) -> std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::Other, msg)
-}
-
-#[cfg(target_os = "linux")]
 pub(crate) fn map_io_err_msg<T: ToString>(e: T, msg: &str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::Other, format!("{}: {}", e.to_string(), msg))
 }

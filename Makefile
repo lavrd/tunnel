@@ -35,6 +35,7 @@ run_docker_server:
 	docker run --rm -it \
 		--name simple-tunnel-server \
 		--cap-add=NET_ADMIN \
+		--privileged \
 		--device /dev/net/tun \
 		--memory=0.5g \
 		--memory-swap=0.5g \
@@ -63,6 +64,7 @@ run_docker_client:
 	docker run --rm -it \
 		--name simple-tunnel-client \
 		--cap-add=NET_ADMIN \
+		--privileged \
 		--device /dev/net/tun \
 		--memory=0.5g \
 		--memory-swap=0.5g \
