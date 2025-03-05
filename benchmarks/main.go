@@ -24,16 +24,12 @@ func main() {
 
 func RunTunnelDig(t *testing.T) testing.RunFn {
 	endpoint := PrepareEndpoint("dig")
-	return func(t *testing.T) {
-		MakeRequest(t, endpoint)
-	}
+	return func(t *testing.T) { MakeRequest(t, endpoint) }
 }
 
 func RunTunnelGo(t *testing.T) testing.RunFn {
 	endpoint := PrepareEndpoint("go")
-	return func(t *testing.T) {
-		MakeRequest(t, endpoint)
-	}
+	return func(t *testing.T) { MakeRequest(t, endpoint) }
 }
 
 func RunLookupGo(t *testing.T) testing.RunFn {
@@ -46,16 +42,16 @@ func RunLookupGo(t *testing.T) testing.RunFn {
 }
 
 func RunLookupLocalGo(t *testing.T) testing.RunFn {
+	resolver := &net.Resolver{
+		PreferGo:     true,
+		StrictErrors: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			return net.Dial("udp", "127.0.0.1:12400")
+		},
+	}
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		resolver := &net.Resolver{
-			PreferGo:     true,
-			StrictErrors: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				return net.Dial("udp", "127.0.0.1:12400")
-			},
-		}
 		_, err := resolver.LookupHost(ctx, Host)
 		t.Require().NoError(err)
 	}

@@ -1,9 +1,9 @@
-use base64::{engine::general_purpose::STANDARD as B64_STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD as B64_STANDARD};
 #[cfg(target_os = "linux")]
-use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, Key, KeyInit, Nonce};
+use chacha20poly1305::{AeadCore, ChaCha20Poly1305, Key, KeyInit, Nonce, aead::Aead};
 use ed25519_dalek::SigningKey;
 #[cfg(target_os = "linux")]
-use ed25519_dalek::{SecretKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
+use ed25519_dalek::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, SecretKey};
 use rand::rngs::OsRng;
 #[cfg(target_os = "linux")]
 use sha2::{Digest, Sha512};

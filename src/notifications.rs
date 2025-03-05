@@ -19,7 +19,7 @@ mod macos {
     const NOTIFICATION_TITLE: &str = "Test";
     const NOTIFICATION_DESCRIPTION: &str = "Notification";
 
-    extern "C" {
+    unsafe extern "C" {
         fn notify(
             identifier_ptr: *const u8,
             identifier_len: u64,

@@ -4,8 +4,8 @@ use std::{
     net::{Ipv4Addr, SocketAddr, UdpSocket},
     str::FromStr,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, RwLock,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
