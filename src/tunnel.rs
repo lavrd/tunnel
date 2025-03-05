@@ -15,7 +15,7 @@ use log::{debug, error, info};
 
 #[cfg(feature = "crypto")]
 use crate::crypto;
-use crate::{linux::Device, map_io_err, new_io_err};
+use crate::{linux::Device, map_io_err};
 
 const MTU: usize = 1500;
 
@@ -62,11 +62,11 @@ pub(crate) fn run_tunnel(
 }
 
 pub(crate) fn parse_ipv4(ipv4: &str) -> std::io::Result<(Ipv4Addr, Ipv4Addr)> {
-    let (addr, prefix) = ipv4.split_once('/').ok_or(new_io_err("failed to split ipv4 address"))?;
+    let (addr, prefix) = ipv4.split_once('/').ok_or(map_io_err("failed to split ipv4 address"))?;
     let addr: Ipv4Addr = addr.parse().map_err(map_io_err)?;
     let prefix: u8 = prefix.parse().map_err(map_io_err)?;
     if prefix > 32 {
-        return Err(new_io_err("prefix is too big"));
+        return Err(map_io_err("prefix is too big"));
     }
     // Example:
     // /24
@@ -142,7 +142,7 @@ impl Tunnel {
                 cipher: self.cipher,
             },
         );
-        th.join().map_err(|_| new_io_err("failed to waiting tun process thread"))
+        th.join().map_err(|_| map_io_err("failed to waiting tun process thread"))
     }
 }
 

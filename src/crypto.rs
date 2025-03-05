@@ -11,7 +11,7 @@ pub(crate) mod cipher {
     use sha2::{Digest, Sha512};
     use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
-    use crate::{map_io_err, new_io_err};
+    use crate::map_io_err;
 
     const NONCE_LENGTH: usize = 12;
 
@@ -67,7 +67,7 @@ pub(crate) mod cipher {
         // https://github.com/dalek-cryptography/x25519-dalek/issues/53
         Ok(curve25519_dalek::edwards::CompressedEdwardsY(other)
             .decompress()
-            .ok_or(new_io_err("failed to decompress public key"))?
+            .ok_or(map_io_err("failed to decompress public key"))?
             .to_montgomery()
             .to_bytes()
             .into())
